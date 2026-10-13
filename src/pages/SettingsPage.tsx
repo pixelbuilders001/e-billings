@@ -70,34 +70,34 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-serif font-bold text-brand-900">
-          Store Configuration & Tax Settings
+        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          System & Business Settings
         </h1>
-        <p className="text-xs text-gray-500 mt-1">
-          Configure business details, GSTIN, invoice sequence prefix, pricing mode, and backup files.
+        <p className="text-xs text-slate-500 font-medium mt-1">
+          Configure business details, GST compliance, invoice numbering prefixes, and pricing policies.
         </p>
       </div>
 
       {/* Tax Guardrail Notice from PRD */}
-      <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 text-xs text-amber-900">
-        <AlertTriangle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+      <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 flex items-start gap-3.5 text-xs text-amber-900 shadow-2xs">
+        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="font-bold">Important Tax Notice & Compliance Guardrail</p>
-          <p className="text-amber-800 mt-0.5 leading-relaxed">
-            GST rates, HSN codes, and invoice structures are configurable. Before production use, verify your GSTIN registration status, saree HSN codes, and tax rates with your chartered accountant. The application calculates tax based on configured numbers; it does not give legal advice.
+          <p className="font-bold text-amber-950">Statutory Tax Compliance Notice</p>
+          <p className="text-amber-800/90 mt-0.5 leading-relaxed">
+            GST rates, HSN codes, and invoice structures are configurable. Before production billing, verify your GSTIN registration status, saree HSN codes, and applicable tax rates with your chartered accountant.
           </p>
         </div>
       </div>
 
       {savedSuccess && (
-        <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 text-emerald-900 flex items-center space-x-2 text-xs font-semibold">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-900 flex items-center space-x-2 text-xs font-bold shadow-2xs animate-in fade-in">
           <Check className="w-4 h-4 text-emerald-600" />
-          <span>Store settings updated successfully!</span>
+          <span>Store settings updated and applied successfully!</span>
         </div>
       )}
 
       {/* Main Settings Form */}
-      <form onSubmit={handleSaveSettings} className="bg-white p-6 rounded-xl border border-ivory-border shadow-sm space-y-6 text-xs">
+      <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6 text-xs">
         {/* Section 1: Business Identity */}
         <div>
           <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider font-serif border-b pb-2 mb-4">
@@ -305,47 +305,47 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
           </div>
         </div>
 
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-end pt-4 border-t border-slate-100">
           <button
             type="submit"
-            className="flex items-center space-x-2 px-6 py-2.5 bg-brand-800 hover:bg-brand-900 text-white rounded-lg font-bold text-xs shadow-md transition"
+            className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition cursor-pointer"
           >
             <Save className="w-4 h-4 text-gold" />
-            <span>Save Settings</span>
+            <span>Save Configuration</span>
           </button>
         </div>
       </form>
 
       {/* Section 5: Data Backup & Restore */}
-      <div className="bg-white p-6 rounded-xl border border-ivory-border shadow-sm text-xs space-y-4">
-        <div className="flex items-center space-x-2 border-b pb-3 text-brand-900 font-serif font-bold text-sm uppercase">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm text-xs space-y-4">
+        <div className="flex items-center space-x-2 border-b border-slate-100 pb-3 text-slate-900 font-bold text-sm uppercase tracking-wider">
           <ShieldCheck className="w-5 h-5 text-emerald-600" />
-          <span>Local Data Safety, Backup & Restore</span>
+          <span>Local Store Data Backup & Restore</span>
         </div>
 
-        <p className="text-gray-600 leading-relaxed">
-          Invoices and customer records are stored securely in your browser's IndexedDB database. To prevent loss when clearing browser cache or changing computers, download regular JSON backups.
+        <p className="text-slate-600 leading-relaxed font-medium">
+          Invoices and client records are stored safely in local IndexedDB. You can export regular JSON snapshots or restore previous backups onto another workstation.
         </p>
 
         {backupStatus && (
-          <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-lg font-medium">
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl font-semibold">
             {backupStatus}
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-4 pt-2">
+        <div className="flex flex-wrap items-center gap-3 pt-2">
           <button
             type="button"
             onClick={handleExportBackup}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-brand-800 hover:bg-brand-900 text-white rounded-lg font-bold shadow-sm transition"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-brand-850 hover:bg-brand-950 text-white rounded-xl font-bold shadow-sm transition cursor-pointer"
           >
             <Download className="w-4 h-4 text-gold" />
-            <span>Download Complete Backup (.json)</span>
+            <span>Export Full JSON Backup</span>
           </button>
 
-          <label className="flex items-center space-x-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-semibold border border-gray-300 cursor-pointer transition">
-            <Upload className="w-4 h-4 text-gray-600" />
-            <span>Restore Backup from File</span>
+          <label className="flex items-center space-x-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl font-bold border border-slate-200 cursor-pointer transition">
+            <Upload className="w-4 h-4 text-slate-500" />
+            <span>Restore Backup File</span>
             <input
               type="file"
               accept=".json"

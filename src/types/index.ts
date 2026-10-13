@@ -65,6 +65,9 @@ export interface Customer {
   gstin?: string;
   businessName?: string;
   notes?: string;
+  loyaltyMemberCode?: string | null;
+  loyaltyPointsBalance?: number;
+  loyaltyTier?: string;
   createdAt: string;
 }
 

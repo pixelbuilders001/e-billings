@@ -13,7 +13,20 @@ import { INDIAN_STATES } from '../engine/indianStates';
 import { calculateInvoice } from '../engine/calculator';
 import { numberToWordsIndian } from '../engine/numberToWords';
 import { allocateNextInvoiceNumber, saveInvoice } from '../db';
-import { searchInventory, InventoryItem } from '../db/supabaseClient';
+import { 
+  searchInventory, 
+  InventoryItem, 
+  createSupabaseSale, 
+  saveSupabaseCustomer,
+  fetchSupabaseAddons,
+  SupabaseAddon,
+  findSupabaseCustomerByPhone,
+  supabase
+} from '../db/supabaseClient';
+import { useAuth } from '../store/useAuthStore';
+import { playBeep } from '../utils/audio';
+import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
+import { RemoteScannerModal } from '../components/RemoteScannerModal';
 import { 
   Search, 
   Plus, 
@@ -26,7 +39,13 @@ import {
   Database,
   Cloud,
   Loader2,
-  Tag
+  Tag,
+  Sparkles,
+  Phone,
+  UserCheck,
+  Camera,
+  Smartphone,
+  ScanLine
 } from 'lucide-react';
 
 interface NewInvoiceProps {
@@ -58,6 +77,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   onInvoiceCreated,
   initialDraft
 }) => {
+  const { user } = useAuth();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     initialDraft?.customerId || customers[0]?.id || 'cust-walkin'
   );
@@ -113,12 +133,38 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   const [paymentRef, setPaymentRef] = useState<string>('');
   const [notes] = useState<string>(initialDraft?.notes || '');
 
-  // Fast Product Search state (Supabase + Local)
+  // Fast Product Search state (Supabase + Local + Add-ons)
   const [searchQuery, setSearchQuery] = useState('');
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [supabaseResults, setSupabaseResults] = useState<InventoryItem[]>([]);
   const [isSearchingSupabase, setIsSearchingSupabase] = useState(false);
+  const [availableAddons, setAvailableAddons] = useState<SupabaseAddon[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Barcode & Remote Scanner States
+  const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+  const [isRemoteLinkOpen, setIsRemoteLinkOpen] = useState(false);
+  const [isRemoteConnected, setIsRemoteConnected] = useState(false);
+  const [scannerNotification, setScannerNotification] = useState<string | null>(null);
+
+  // Session ID for Remote Scanner Room (matching sibling project)
+  const [sessionId] = useState<string>(() => {
+    const saved = localStorage.getItem('invoice_session_id');
+    if (saved) return saved;
+    const id = 'S-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+    localStorage.setItem('invoice_session_id', id);
+    return id;
+  });
+
+  // Physical Barcode Scanner Hardware Keystroke Buffer
+  const scannerBufferRef = useRef<{ text: string; lastTime: number }>({ text: '', lastTime: 0 });
+
+  // Load available add-ons from Supabase public.addons on mount
+  useEffect(() => {
+    fetchSupabaseAddons().then(addons => {
+      setAvailableAddons(addons);
+    });
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -146,6 +192,58 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // State to track if customer was found / auto-filled
+  const [customerLookupStatus, setCustomerLookupStatus] = useState<'idle' | 'searching' | 'existing' | 'new'>('idle');
+
+  const handleCustomerPhoneChange = async (val: string) => {
+    setCustomerPhone(val);
+    const clean = val.trim().replace(/\D/g, '');
+
+    // Reset indicator if phone is cleared or too short
+    if (clean.length < 5) {
+      setCustomerLookupStatus('idle');
+      return;
+    }
+
+    // 1. First check loaded customers (local IndexedDB + already fetched Supabase customers)
+    const existingCust = customers.find(c => {
+      const cClean = (c.phone || '').trim().replace(/\D/g, '');
+      return cClean === clean || (cClean.length >= 10 && clean.length >= 10 && cClean.slice(-10) === clean.slice(-10));
+    });
+
+    if (existingCust) {
+      setSelectedCustomerId(existingCust.id);
+      setCustomerName(existingCust.name);
+      if (existingCust.billingAddress) setCustomerAddress(existingCust.billingAddress);
+      if (existingCust.stateCode) setPosStateCode(existingCust.stateCode);
+      setCustomerLookupStatus('existing');
+      return;
+    }
+
+    // 2. If phone is at least 10 digits and not found locally, query Supabase directly
+    if (clean.length >= 10) {
+      setCustomerLookupStatus('searching');
+      try {
+        const remoteCust = await findSupabaseCustomerByPhone(clean);
+        if (remoteCust) {
+          setSelectedCustomerId(remoteCust.id);
+          setCustomerName(remoteCust.name);
+          if (remoteCust.address) setCustomerAddress(remoteCust.address);
+          setCustomerLookupStatus('existing');
+        } else {
+          // First-time new customer
+          setSelectedCustomerId('cust-new-' + Date.now());
+          setCustomerLookupStatus('new');
+        }
+      } catch (err) {
+        console.warn('Customer lookup error:', err);
+        setCustomerLookupStatus('new');
+      }
+    } else {
+      setCustomerLookupStatus('idle');
+    }
+  };
+
   const handleCustomerSelect = (id: string) => {
     setSelectedCustomerId(id);
     const found = customers.find(c => c.id === id);
@@ -155,6 +253,13 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       setCustomerAddress(found.billingAddress);
       setCustomerGstin(found.gstin || '');
       setPosStateCode(found.stateCode || settings.stateCode);
+      setCustomerLookupStatus('existing');
+    } else if (id === 'cust-walkin') {
+      setCustomerName('Walk-in Retail Customer');
+      setCustomerPhone('');
+      setCustomerAddress('Varanasi Store Counter');
+      setCustomerGstin('');
+      setCustomerLookupStatus('idle');
     }
   };
 
@@ -260,6 +365,113 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     setShowProductDropdown(false);
   };
 
+  // Add Add-on Item (Blouse, Petticoat, Fall & Pico, etc.)
+  const handleSelectAddon = (addon: SupabaseAddon) => {
+    const emptyIndex = items.findIndex(it => !it.description && it.unitPrice === 0);
+    const hsn = addon.category === 'Blouse' ? '6211' : addon.category === 'Petticoat' ? '6208' : '5208';
+    const newItem: WorkingItem = {
+      id: 'row-' + Date.now(),
+      productId: `addon-${addon.id}`,
+      description: `${addon.name} (${addon.category})`,
+      hsnCode: hsn,
+      qty: 1,
+      unit: 'Nos',
+      unitPrice: Number(addon.selling_price) || 0,
+      discountType: 'percentage',
+      discountValue: 0,
+      gstRate: settings.defaultGstRate || 5
+    };
+
+    if (emptyIndex !== -1) {
+      const copy = [...items];
+      copy[emptyIndex] = newItem;
+      setItems(copy);
+    } else {
+      setItems(prev => [...prev, newItem]);
+    }
+
+    setSearchQuery('');
+    setShowProductDropdown(false);
+  };
+
+  // Saree Code Match function matching sibling project
+  const isSareeCodeMatch = (item: { id: string; barcode?: string | null; sku?: string | null }, rawCode: string): boolean => {
+    if (!rawCode || !item) return false;
+    const term = rawCode.trim().toLowerCase();
+    if (!term) return false;
+
+    const termWithoutS = term.startsWith('s') ? term.substring(1) : term;
+    const termWithS = term.startsWith('s') ? term : 's' + term;
+
+    const sId = (item.id || '').trim().toLowerCase();
+    const sIdWithoutS = sId.startsWith('s') ? sId.substring(1) : sId;
+
+    const sBarcode = (item.barcode || '').trim().toLowerCase();
+    const sBarcodeWithoutS = sBarcode.startsWith('s') ? sBarcode.substring(1) : sBarcode;
+
+    const sSku = (item.sku || '').trim().toLowerCase();
+
+    return (
+      sBarcode === term ||
+      sBarcode === termWithS ||
+      sBarcode === termWithoutS ||
+      (sBarcodeWithoutS.length >= 3 && sBarcodeWithoutS === termWithoutS) ||
+      sId === term ||
+      sId === termWithS ||
+      sId === termWithoutS ||
+      (sIdWithoutS.length >= 3 && sIdWithoutS === termWithoutS) ||
+      sSku === term ||
+      (sSku.replace(/[-\s_]/g, '') === term.replace(/[-\s_]/g, ''))
+    );
+  };
+
+  // Resolve scanned barcode against local catalogue & remote Supabase inventory
+  const handleBarcodeResolved = async (barcodeText: string) => {
+    const cleanCode = barcodeText.trim();
+    if (!cleanCode) return;
+
+    // 1. Check local products first
+    const matchedLocal = products.find(p => isSareeCodeMatch(p, cleanCode));
+    if (matchedLocal) {
+      playBeep();
+      handleSelectProduct(matchedLocal);
+      setScannerNotification(`Scanned: ${matchedLocal.name}`);
+      setTimeout(() => setScannerNotification(null), 3000);
+      return;
+    }
+
+    // 2. Query Supabase storefront products
+    try {
+      const searchRes = await searchInventory(cleanCode, 5);
+      const matchedRemote = searchRes.find(item => isSareeCodeMatch(item, cleanCode)) || searchRes[0];
+      if (matchedRemote) {
+        playBeep();
+        handleSelectSupabaseItem(matchedRemote);
+        setScannerNotification(`Scanned: ${matchedRemote.saree_name}`);
+        setTimeout(() => setScannerNotification(null), 3000);
+        return;
+      }
+    } catch (err) {
+      console.warn('Barcode remote lookup failed:', err);
+    }
+
+    // 3. Fallback: Check add-ons
+    const matchedAddon = availableAddons.find(a => 
+      a.id.toLowerCase() === cleanCode.toLowerCase() || 
+      a.name.toLowerCase().includes(cleanCode.toLowerCase())
+    );
+    if (matchedAddon) {
+      playBeep();
+      handleSelectAddon(matchedAddon);
+      setScannerNotification(`Scanned Add-on: ${matchedAddon.name}`);
+      setTimeout(() => setScannerNotification(null), 3000);
+      return;
+    }
+
+    setScannerNotification(`No product found for barcode: ${cleanCode}`);
+    setTimeout(() => setScannerNotification(null), 3500);
+  };
+
   // Filter local products by name, SKU, barcode, category, productTag, or ID
   const filteredLocalProducts = products.filter(p => {
     if (!searchQuery.trim()) return false;
@@ -273,6 +485,99 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       (p.productTag && p.productTag.toLowerCase().includes(q))
     );
   }).slice(0, 8);
+
+  // Filter matching add-ons from public.addons
+  const filteredAddons = availableAddons.filter(a => {
+    if (!searchQuery.trim()) return false;
+    const q = searchQuery.toLowerCase();
+    return a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q);
+  }).slice(0, 8);
+
+  // Realtime Supabase broadcast subscription for Remote Scanner (Phone)
+  useEffect(() => {
+    const targetChannelName = `room:POS-${sessionId}`;
+    console.log(`[POS Invoice] Connecting to Supabase Realtime channel: ${targetChannelName}`);
+
+    const channel = supabase.channel(targetChannelName, {
+      config: { broadcast: { self: false } }
+    });
+
+    channel
+      .on('broadcast', { event: 'scan' }, (payload) => {
+        console.log('[POS Invoice] Realtime broadcast scan received:', payload);
+        const data = payload?.payload;
+        const barcode = typeof data === 'string' ? data.trim() : (data?.barcode ? String(data.barcode).trim() : '');
+
+        if (barcode) {
+          handleBarcodeResolved(barcode);
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[POS Invoice] Supabase channel subscribed live!');
+          setIsRemoteConnected(true);
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setIsRemoteConnected(false);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId, products, availableAddons, items]);
+
+  // Hardware Barcode Scanner global listener (USB / Bluetooth barcode guns)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isOtherInputActive = activeEl && (
+        (activeEl.tagName === 'INPUT' && activeEl !== searchInputRef.current) ||
+        activeEl.tagName === 'TEXTAREA' ||
+        (activeEl as HTMLElement).isContentEditable
+      );
+
+      const now = Date.now();
+      const timeSinceLastKey = now - scannerBufferRef.current.lastTime;
+
+      if (e.key === 'Enter') {
+        const bufferText = scannerBufferRef.current.text.trim();
+        const inputVal = (searchInputRef.current?.value || searchQuery || '').trim();
+        const termToMatch = bufferText || (timeSinceLastKey < 80 ? inputVal : '');
+
+        if (termToMatch.length >= 2) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleBarcodeResolved(termToMatch);
+          setSearchQuery('');
+          if (searchInputRef.current) searchInputRef.current.value = '';
+          scannerBufferRef.current = { text: '', lastTime: 0 };
+          return;
+        }
+        scannerBufferRef.current = { text: '', lastTime: 0 };
+        return;
+      }
+
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (isOtherInputActive) {
+          if (timeSinceLastKey < 60) {
+            scannerBufferRef.current.text += e.key;
+          } else {
+            scannerBufferRef.current.text = e.key;
+          }
+        } else {
+          if (timeSinceLastKey > 150) {
+            scannerBufferRef.current.text = e.key;
+          } else {
+            scannerBufferRef.current.text += e.key;
+          }
+        }
+        scannerBufferRef.current.lastTime = now;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, [products, availableAddons, searchQuery, items]);
 
   const calcResult = calculateInvoice({
     items: items.map(it => ({
@@ -371,7 +676,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         }
       ] : [];
 
-      const fullInvoice: Invoice = {
+      let fullInvoice: Invoice = {
         id: initialDraft?.id || ('inv-' + Date.now()),
         invoiceNumber: invNumber,
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -406,6 +711,73 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         updatedAt: new Date().toISOString()
       };
 
+      // If finalizing, sync with Supabase public.sales and public.sale_items
+      if (finalize) {
+        try {
+          // Ensure customer exists in Supabase
+          let supabaseCustomerId = selectedCustomerId;
+          const isCustomerUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedCustomerId || '');
+          
+          if (!isCustomerUuid && customerPhone && customerName) {
+            const { data: createdCust } = await saveSupabaseCustomer({
+              name: customerName,
+              mobile: customerPhone,
+              address: customerAddress || 'Varanasi',
+              city: 'Varanasi'
+            });
+            if (createdCust?.id) {
+              supabaseCustomerId = createdCust.id;
+              fullInvoice.customerId = createdCust.id;
+              fullInvoice.customerSnapshot.id = createdCust.id;
+            }
+          }
+
+          // Build sales payload matching public.sales schema
+          const salePayload: any = {
+            invoice_number: invNumber,
+            customer_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(supabaseCustomerId || '') ? supabaseCustomerId : null,
+            total_amount: calcResult.grandTotal,
+            profit: 0,
+            payment_mode: (paymentMethod || 'cash').toLowerCase(),
+            discount_amount: calcResult.totalDiscount,
+            discount_percentage: billDiscountType === 'percentage' ? billDiscountValue : null,
+            is_gst_applied: calcResult.isRegisteredTaxInvoice,
+            gst_rate: calcResult.rateBreakdown?.[0]?.rate || 5,
+            taxable_amount: calcResult.taxableTotal,
+            cgst_rate: calcResult.supplyType === 'intra_state' ? (calcResult.rateBreakdown?.[0]?.rate || 5) / 2 : 0,
+            cgst_amount: calcResult.cgstTotal,
+            sgst_rate: calcResult.supplyType === 'intra_state' ? (calcResult.rateBreakdown?.[0]?.rate || 5) / 2 : 0,
+            sgst_amount: calcResult.sgstTotal,
+            igst_rate: calcResult.supplyType === 'inter_state' ? (calcResult.rateBreakdown?.[0]?.rate || 5) : 0,
+            igst_amount: calcResult.igstTotal,
+            total_gst: calcResult.taxTotal,
+            amount_paid: paidSoFar,
+            due_amount: balanceDue,
+            payment_status: payStatus === 'paid' ? 'paid' : payStatus === 'partially_paid' ? 'partially_paid' : 'due',
+            created_by: user?.email || 'admin'
+          };
+
+          const saleItemsPayload = calcResult.items.map(it => ({
+            saree_id: it.productId || it.description,
+            quantity: it.qty,
+            selling_price: it.unitPrice
+          }));
+
+          const { data: createdSale, error: saleErr } = await createSupabaseSale({
+            sale: salePayload,
+            items: saleItemsPayload
+          });
+
+          if (!saleErr && createdSale?.id) {
+            fullInvoice.id = createdSale.id;
+          } else if (saleErr) {
+            console.warn('Could not sync to Supabase sales table (offline or schema fallback):', saleErr.message);
+          }
+        } catch (syncErr) {
+          console.warn('Error during Supabase sale creation:', syncErr);
+        }
+      }
+
       await saveInvoice(fullInvoice);
       onInvoiceCreated(fullInvoice);
     } catch (err: any) {
@@ -420,44 +792,47 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-brand-900 flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-brand-700" />
-            Fast Billing Counter
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-brand-50 text-brand-800 border border-brand-100">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <span>POS Billing Counter</span>
           </h1>
-          <p className="text-xs text-gray-500">
-            Search sarees from Supabase Inventory or Local Catalogue by ID, Name, Product Tag, or Barcode.
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Fast billing terminal with real-time barcode / item search, dynamic add-ons, and auto-tax calculation.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => setPricingMode((m: PricingMode) => m === 'inclusive' ? 'exclusive' : 'inclusive')}
             title="Click to toggle pricing mode"
-            className="text-xs px-3 py-1.5 rounded bg-amber-50 hover:bg-amber-100 border border-gold/60 text-brand-900 font-medium transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+            className="text-xs px-3.5 py-2 rounded-xl bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200 text-brand-900 font-semibold transition cursor-pointer flex items-center gap-2 shadow-2xs"
           >
-            <span>Pricing:</span>
-            <strong className="underline decoration-gold">
-              {pricingMode === 'inclusive' ? 'GST Included in Price' : 'Tax Exclusive (+GST)'}
+            <span className="text-slate-600 font-normal">Pricing:</span>
+            <strong className="text-brand-950 font-bold">
+              {pricingMode === 'inclusive' ? 'GST Included (MRP)' : 'Tax Exclusive (+GST)'}
             </strong>
-            <span className="text-[10px] text-amber-700 bg-amber-200/60 px-1 rounded">Switch</span>
+            <span className="text-[10px] text-amber-800 bg-amber-200/60 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Toggle</span>
           </button>
-          <span className={`text-xs px-2.5 py-1.5 rounded font-medium ${
+          <span className={`text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs ${
             settings.registrationStatus === 'registered'
-              ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
-              : 'bg-gray-100 border border-gray-300 text-gray-700'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : 'bg-slate-100 border border-slate-200 text-slate-700'
           }`}>
-            Mode: <strong>{settings.registrationStatus === 'registered' ? 'Tax Invoice' : 'Retail Bill (Non-GST)'}</strong>
+            <span className={`w-1.5 h-1.5 rounded-full ${settings.registrationStatus === 'registered' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+            {settings.registrationStatus === 'registered' ? 'GST Tax Invoice' : 'Retail Bill (Non-GST)'}
           </span>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3">
+        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-sm animate-shake">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-600" />
           <div>
-            <p className="font-semibold text-sm">Validation Error</p>
-            <p className="text-xs mt-0.5">{errorMessage}</p>
+            <p className="font-bold text-sm">Validation Error</p>
+            <p className="text-xs mt-0.5 font-medium">{errorMessage}</p>
           </div>
         </div>
       )}
@@ -465,38 +840,84 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-8 space-y-6">
           {/* Quick Product Search & Scan Bar */}
-          <div className="bg-white p-4 rounded-xl border border-ivory-border shadow-sm relative">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-brand-800">
-                Quick Saree Search & Barcode Scan
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-brand-700" />
+                <span>Search Products & Add-ons</span>
               </label>
-              <div className="flex items-center space-x-2 text-[11px] text-gray-500">
-                <span className="flex items-center gap-1 text-emerald-700 font-medium">
-                  <Cloud className="w-3.5 h-3.5" /> Supabase Live
+              <div className="flex items-center space-x-2 text-[11px] text-slate-500 font-medium">
+                <span className="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
+                  <Cloud className="w-3 h-3" /> Live Inventory
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-purple-700 font-medium">
+                  <Sparkles className="w-3.5 h-3.5" /> Add-ons ({availableAddons.length})
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1 text-gray-600">
-                  <Database className="w-3.5 h-3.5" /> Local Catalogue
+                  <Database className="w-3.5 h-3.5" /> Catalogue
                 </span>
               </div>
             </div>
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search by ID, Saree Name, Product Tag, SKU, or Scan Barcode..."
-                value={searchQuery}
-                onChange={e => {
-                  setSearchQuery(e.target.value);
-                  setShowProductDropdown(true);
-                }}
-                onFocus={() => setShowProductDropdown(true)}
-                className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-700 focus:outline-none"
-              />
-              {isSearchingSupabase && (
-                <Loader2 className="w-4 h-4 absolute right-3 top-3.5 text-brand-600 animate-spin" />
-              )}
+            {/* Scanner Notification Banner */}
+            {scannerNotification && (
+              <div className="mb-3 p-2.5 rounded-xl bg-brand-900 text-gold flex items-center justify-between text-xs font-bold animate-in fade-in slide-in-from-top-1 shadow-md border border-gold/30">
+                <span className="flex items-center gap-2">
+                  <ScanLine className="w-4 h-4 text-gold animate-pulse" />
+                  <span>{scannerNotification}</span>
+                </span>
+                <span className="text-[10px] text-ivory/70 uppercase">Scanned</span>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="relative flex-1">
+                <Search className="w-5 h-5 absolute left-3.5 top-3 text-slate-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search Sarees, Add-ons, or Scan Barcode..."
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setShowProductDropdown(true);
+                  }}
+                  onFocus={() => setShowProductDropdown(true)}
+                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-700 focus:bg-white focus:outline-none transition"
+                />
+                {isSearchingSupabase && (
+                  <Loader2 className="w-4 h-4 absolute right-3.5 top-3.5 text-brand-600 animate-spin" />
+                )}
+              </div>
+
+              {/* Scanner Actions (Camera + Remote Phone) */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCameraScannerOpen(true)}
+                  title="Scan with webcam / device camera"
+                  className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-200 shadow-2xs cursor-pointer active:scale-98 shrink-0"
+                >
+                  <Camera className="w-4 h-4 text-brand-800" />
+                  <span className="hidden sm:inline">Camera</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRemoteLinkOpen(true)}
+                  title="Link Phone Scanner via QR code"
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border shadow-2xs cursor-pointer active:scale-98 shrink-0 ${
+                    isRemoteConnected
+                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                      : 'bg-gradient-to-r from-brand-850 to-brand-950 text-white border-brand-900'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4 text-gold" />
+                  <span>Remote Scan</span>
+                  <span className={`w-2 h-2 rounded-full ${isRemoteConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gold'}`} />
+                </button>
+              </div>
             </div>
 
             {/* Dropdown Results (Supabase + Local) */}
@@ -590,9 +1011,48 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   </div>
                 )}
 
-                {supabaseResults.length === 0 && filteredLocalProducts.length === 0 && !isSearchingSupabase && (
+                {/* 3. Add-ons Matches (Blouse, Petticoat, Fall & Pico) */}
+                {filteredAddons.length > 0 && (
+                  <div>
+                    <div className="bg-purple-50/80 px-3 py-1.5 text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1 border-b border-purple-100">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Add-ons & Accessories ({filteredAddons.length})</span>
+                    </div>
+                    {filteredAddons.map(addon => (
+                      <div
+                        key={addon.id}
+                        onClick={() => handleSelectAddon(addon)}
+                        className="p-3 hover:bg-purple-50/50 cursor-pointer flex items-center justify-between text-xs transition border-b border-gray-50 last:border-b-0"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-gray-900 flex items-center gap-2">
+                            {addon.name}
+                            <span className="inline-flex items-center px-1.5 py-0.2 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">
+                              {addon.category}
+                            </span>
+                          </p>
+                          <p className="text-gray-500 text-[11px]">
+                            Add-on Accessory • Available in Store Inventory
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className="font-bold font-mono text-brand-900 text-sm">
+                            ₹{Number(addon.selling_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </p>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                            addon.stock > 0 ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                          }`}>
+                            Stock: {addon.stock ?? 0}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {supabaseResults.length === 0 && filteredLocalProducts.length === 0 && filteredAddons.length === 0 && !isSearchingSupabase && (
                   <div className="p-4 text-center text-xs text-gray-500">
-                    No matching saree found for "{searchQuery}". You can enter manual line details below.
+                    No matching saree or add-on found for "{searchQuery}". You can enter manual line details below.
                   </div>
                 )}
               </div>
@@ -788,36 +1248,51 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-gray-600 font-medium mb-1">Customer Name</label>
+                <label className="block text-gray-600 font-medium mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5 text-brand-700" />
+                    Customer Phone Number
+                  </span>
+                  {customerLookupStatus === 'searching' && (
+                    <span className="text-[10px] text-brand-600 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Checking DB...
+                    </span>
+                  )}
+                  {customerLookupStatus === 'existing' && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      <UserCheck className="w-3 h-3" /> Existing Customer (Auto-filled)
+                    </span>
+                  )}
+                  {customerLookupStatus === 'new' && (
+                    <span className="text-[10px] text-blue-700 font-semibold flex items-center gap-1 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                      <Plus className="w-3 h-3" /> New Customer
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={customerPhone}
+                  onChange={e => handleCustomerPhoneChange(e.target.value)}
+                  placeholder="Type 10-digit mobile number to auto-fill..."
+                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-600 font-medium mb-1 flex items-center justify-between">
+                  <span>Customer Name</span>
+                  {customerLookupStatus === 'new' && (
+                    <span className="text-[10px] text-gray-500 italic">Enter name for first-time customer</span>
+                  )}
+                </label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={e => setCustomerName(e.target.value)}
+                  placeholder="Customer Full Name"
                   className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-600 font-medium mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  placeholder="10-digit mobile"
-                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-600 font-medium mb-1">Customer GSTIN (Optional B2B)</label>
-                <input
-                  type="text"
-                  value={customerGstin}
-                  onChange={e => setCustomerGstin(e.target.value.toUpperCase())}
-                  placeholder="e.g. 09AAECV1234K1ZB"
-                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs font-mono uppercase focus:ring-1 focus:ring-brand-700"
                 />
               </div>
             </div>
@@ -984,30 +1459,57 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
               </div>
             </div>
 
-            <div className="mt-6 space-y-2">
+            <div className="mt-6 space-y-2.5">
               <button
                 type="button"
                 disabled={isSubmitting || calcResult.grandTotal <= 0}
                 onClick={() => handleSaveInvoice(true)}
-                className="w-full py-3 px-4 bg-brand-800 hover:bg-brand-900 text-white rounded-xl font-bold text-sm shadow-md flex items-center justify-center space-x-2 transition disabled:opacity-50"
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl font-extrabold text-sm shadow-md hover:shadow-lg flex items-center justify-center space-x-2 transition duration-150 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
-                <CheckCircle className="w-5 h-5 text-gold" />
-                <span>{isSubmitting ? 'Finalizing Invoice...' : 'Finalize & Generate Bill'}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin text-gold" />
+                    <span>Processing & Finalizing Bill...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 text-gold" />
+                    <span>Finalize & Print Invoice</span>
+                  </>
+                )}
               </button>
 
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleSaveInvoice(false)}
-                className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer disabled:opacity-50"
               >
-                <Save className="w-4 h-4 text-gray-500" />
+                {isSubmitting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-slate-500" />
+                )}
                 <span>Save as Draft</span>
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Barcode & Remote Mobile Scanner Modals */}
+      <BarcodeScannerModal
+        isOpen={isCameraScannerOpen}
+        onClose={() => setIsCameraScannerOpen(false)}
+        onScan={handleBarcodeResolved}
+      />
+
+      <RemoteScannerModal
+        sessionId={sessionId}
+        isOpen={isRemoteLinkOpen}
+        onClose={() => setIsRemoteLinkOpen(false)}
+        isConnected={isRemoteConnected}
+      />
     </div>
   );
 };

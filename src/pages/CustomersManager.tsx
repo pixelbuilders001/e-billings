@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Customer } from '../types';
-import { Plus, Search, Edit2, Trash2, X, MapPin, Phone } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, MapPin, Phone, Award } from 'lucide-react';
 import { INDIAN_STATES } from '../engine/indianStates';
 import { saveCustomer, deleteCustomer } from '../db';
+import { saveSupabaseCustomer, deleteSupabaseCustomer } from '../db/supabaseClient';
 
 interface CustomersManagerProps {
   customers: Customer[];
@@ -34,7 +35,8 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
       c.name.toLowerCase().includes(q) ||
       c.phone.toLowerCase().includes(q) ||
       (c.gstin && c.gstin.toLowerCase().includes(q)) ||
-      (c.businessName && c.businessName.toLowerCase().includes(q))
+      (c.businessName && c.businessName.toLowerCase().includes(q)) ||
+      (c.loyaltyMemberCode && c.loyaltyMemberCode.toLowerCase().includes(q))
     );
   });
 
@@ -66,6 +68,7 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!name.trim() || !phone.trim()) {
       alert('Customer Name and Phone Number are required.');
       return;
@@ -73,8 +76,10 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
     const matchedState = INDIAN_STATES.find(s => s.code === stateCode);
 
+    const customerId = editingCustomer ? editingCustomer.id : `cust-${Date.now()}`;
+
     const newCust: Customer = {
-      id: editingCustomer ? editingCustomer.id : `cust-${Date.now()}`,
+      id: customerId,
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim() || undefined,
@@ -84,10 +89,32 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
       state: matchedState?.name || 'Uttar Pradesh',
       stateCode: stateCode,
       notes: notes.trim() || undefined,
+      loyaltyMemberCode: editingCustomer?.loyaltyMemberCode,
+      loyaltyPointsBalance: editingCustomer?.loyaltyPointsBalance,
+      loyaltyTier: editingCustomer?.loyaltyTier,
       createdAt: editingCustomer ? editingCustomer.createdAt : new Date().toISOString()
     };
 
+    // Save to local indexedDB
     await saveCustomer(newCust);
+
+    // Save to Supabase public.customers table (if ID is UUID or create new record)
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
+      const supabasePayload: any = {
+        name: newCust.name,
+        mobile: newCust.phone,
+        address: newCust.billingAddress,
+        city: newCust.billingAddress.split(',').pop()?.trim() || 'Varanasi'
+      };
+      if (isUuid) {
+        supabasePayload.id = customerId;
+      }
+      await saveSupabaseCustomer(supabasePayload);
+    } catch (err) {
+      console.warn('Could not sync customer to Supabase:', err);
+    }
+
     setIsCreating(false);
     setEditingCustomer(null);
     onRefresh();
@@ -96,6 +123,14 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
   const handleDelete = async (id: string, customerName: string) => {
     if (confirm(`Delete customer "${customerName}"?`)) {
       await deleteCustomer(id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (isUuid) {
+        try {
+          await deleteSupabaseCustomer(id);
+        } catch (err) {
+          console.warn('Could not delete customer from Supabase:', err);
+        }
+      }
       onRefresh();
     }
   };
@@ -104,33 +139,33 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-brand-900">
-            Customer Registry
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Customer Directory & CRM
           </h1>
-          <p className="text-xs text-gray-500">
-            Manage repeat retail buyers, bridal clients, and wholesale B2B accounts.
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Manage repeat clients, contact records, loyalty member tiers, and billing addresses.
           </p>
         </div>
 
         <button
           onClick={handleStartCreate}
-          className="flex items-center space-x-1.5 px-4 py-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg text-xs font-bold shadow-sm transition"
+          className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer"
         >
           <Plus className="w-4 h-4 text-gold" />
-          <span>New Customer</span>
+          <span>Add New Customer</span>
         </button>
       </div>
 
       {(isCreating || editingCustomer) && (
-        <form onSubmit={handleSave} className="bg-white p-6 rounded-xl border border-gold/40 shadow-md space-y-4 text-xs">
-          <div className="flex items-center justify-between border-b pb-3">
-            <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider font-serif">
-              {isCreating ? 'Add Customer Profile' : `Edit Customer: ${editingCustomer?.name}`}
+        <form onSubmit={handleSave} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl space-y-4 text-xs animate-in fade-in duration-200">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+              {isCreating ? 'Create Customer Profile' : `Edit Customer Profile: ${editingCustomer?.name}`}
             </h2>
             <button
               type="button"
               onClick={() => { setIsCreating(false); setEditingCustomer(null); }}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -173,26 +208,15 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 font-semibold mb-1">Business Name (B2B)</label>
+              <label className="block text-gray-700 font-semibold mb-1">Business Name (Optional)</label>
               <input
                 type="text"
                 value={businessName}
                 onChange={e => setBusinessName(e.target.value)}
                 placeholder="Firm / Shop Name"
                 className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 font-semibold mb-1">GSTIN (Optional)</label>
-              <input
-                type="text"
-                value={gstin}
-                onChange={e => setGstin(e.target.value.toUpperCase())}
-                placeholder="09AAAAA0000A1Z5"
-                className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs font-mono uppercase"
               />
             </div>
 
@@ -234,31 +258,31 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-3 border-t">
+          <div className="flex justify-end space-x-2.5 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={() => { setIsCreating(false); setEditingCustomer(null); }}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
+              className="px-4 py-2 border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-brand-800 text-white font-bold rounded-lg hover:bg-brand-900"
+              className="px-6 py-2 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white font-bold rounded-xl shadow-md transition cursor-pointer"
             >
-              Save Customer
+              Save Customer Profile
             </button>
           </div>
         </form>
       )}
 
       {/* Search Input */}
-      <div className="bg-white p-4 rounded-xl border border-ivory-border shadow-sm flex items-center text-xs">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center text-xs">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by customer name, phone number, firm name or GSTIN..."
+            placeholder="Search by customer name, phone number, or firm name..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-700"
@@ -267,25 +291,41 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
       </div>
 
       {/* Customers List */}
-      <div className="bg-white rounded-xl border border-ivory-border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
-                <th className="py-3 px-4 font-semibold">Customer Details</th>
-                <th className="py-3 px-4 font-semibold">Contact</th>
-                <th className="py-3 px-4 font-semibold">Location</th>
-                <th className="py-3 px-4 font-semibold">B2B / GSTIN</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
+              <tr className="bg-slate-50/80 text-slate-600 border-b border-slate-200">
+                <th className="py-3.5 px-4 font-bold">Customer Details</th>
+                <th className="py-3.5 px-4 font-bold">Contact</th>
+                <th className="py-3.5 px-4 font-bold">Location</th>
+                <th className="py-3.5 px-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {filteredCustomers.map(cust => (
-                <tr key={cust.id} className="hover:bg-brand-50/30 transition">
-                  <td className="py-3 px-4">
-                    <p className="font-bold text-gray-900">{cust.name}</p>
+                <tr key={cust.id} className="hover:bg-slate-50/70 transition duration-150">
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-slate-900">{cust.name}</p>
+                      {cust.loyaltyTier && (
+                        <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                          cust.loyaltyTier === 'Gold'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : cust.loyaltyTier === 'Platinum'
+                            ? 'bg-purple-50 text-purple-800 border border-purple-200'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          <Award className="w-2.5 h-2.5 text-amber-500" />
+                          {cust.loyaltyTier} {cust.loyaltyPointsBalance ? `(${cust.loyaltyPointsBalance} pts)` : ''}
+                        </span>
+                      )}
+                    </div>
                     {cust.businessName && (
                       <p className="text-[11px] text-gray-600 font-medium">{cust.businessName}</p>
+                    )}
+                    {cust.loyaltyMemberCode && (
+                      <p className="text-[10px] text-brand-800 font-mono">Member: {cust.loyaltyMemberCode}</p>
                     )}
                     {cust.notes && (
                       <p className="text-[10px] text-gray-400 italic mt-0.5">{cust.notes}</p>
@@ -305,15 +345,7 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
                     </p>
                     <p className="text-[11px] text-gray-500">{cust.billingAddress}</p>
                   </td>
-                  <td className="py-3 px-4">
-                    {cust.gstin ? (
-                      <span className="font-mono text-[11px] font-bold text-brand-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                        {cust.gstin}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-gray-400 italic">Unregistered Buyer</span>
-                    )}
-                  </td>
+
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <button

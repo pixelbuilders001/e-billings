@@ -283,36 +283,36 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-brand-900 flex items-center gap-2">
-            Inventory & Catalogue
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            Inventory & Product Catalogue
           </h1>
-          <p className="text-xs text-gray-500">
-            Connected to <strong>public.storefront_products</strong> on Supabase ({totalCount} total items recorded).
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Connected to live Supabase cloud database with {totalCount.toLocaleString()} total items recorded.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => loadSupabasePage(currentPage, pageSize, search)}
             title="Refresh current page"
-            className="p-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-xs shadow-sm transition"
+            className="p-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs shadow-2xs transition cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${loadingSupabase ? 'animate-spin text-brand-700' : 'text-gray-500'}`} />
+            <RefreshCw className={`w-4 h-4 ${loadingSupabase ? 'animate-spin text-brand-700' : 'text-slate-500'}`} />
           </button>
           <button
             onClick={handleExportFullCSV}
             disabled={isExportingAll}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition disabled:opacity-50 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-gray-500" />
-            <span>{isExportingAll ? 'Fetching All...' : 'Export Complete CSV'}</span>
+            {isExportingAll ? <Loader2 className="w-4 h-4 animate-spin text-brand-700" /> : <Download className="w-4 h-4 text-slate-500" />}
+            <span>{isExportingAll ? 'Exporting All Records...' : 'Export Complete CSV'}</span>
           </button>
           <button
             onClick={handleStartCreate}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg text-xs font-bold shadow-sm transition"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer"
           >
             <Plus className="w-4 h-4 text-gold" />
-            <span>Add Saree</span>
+            <span>Add Product</span>
           </button>
         </div>
       </div>
@@ -324,29 +324,35 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 space-x-4 text-xs font-semibold">
+      <div className="flex border-b border-slate-200 space-x-6 text-xs font-semibold">
         <button
           onClick={() => setActiveTab('supabase')}
-          className={`pb-2.5 flex items-center space-x-1.5 transition ${
+          className={`pb-3 flex items-center space-x-2 transition cursor-pointer relative ${
             activeTab === 'supabase'
-              ? 'border-b-2 border-brand-800 text-brand-900 font-bold'
-              : 'text-gray-500 hover:text-gray-800'
+              ? 'text-brand-900 font-extrabold'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
           <Cloud className="w-4 h-4 text-emerald-600" />
-          <span>Supabase Products ({totalCount} total)</span>
+          <span>Cloud Database ({totalCount.toLocaleString()} items)</span>
+          {activeTab === 'supabase' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-800 rounded-full" />
+          )}
         </button>
 
         <button
           onClick={() => setActiveTab('local')}
-          className={`pb-2.5 flex items-center space-x-1.5 transition ${
+          className={`pb-3 flex items-center space-x-2 transition cursor-pointer relative ${
             activeTab === 'local'
-              ? 'border-b-2 border-brand-800 text-brand-900 font-bold'
-              : 'text-gray-500 hover:text-gray-800'
+              ? 'text-brand-900 font-extrabold'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
           <Database className="w-4 h-4 text-brand-700" />
-          <span>Local Store Catalogue ({products.length})</span>
+          <span>Local Cache ({products.length} items)</span>
+          {activeTab === 'local' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-800 rounded-full" />
+          )}
         </button>
       </div>
 

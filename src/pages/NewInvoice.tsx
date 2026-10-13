@@ -507,7 +507,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   <div>
                     <div className="bg-emerald-50/80 px-3 py-1.5 text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1 border-b border-emerald-100">
                       <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Supabase Inventory Table ({supabaseResults.length})</span>
+                      <span>Supabase Storefront Products ({supabaseResults.length})</span>
                     </div>
                     {supabaseResults.map(inv => (
                       <div
@@ -518,21 +518,21 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                         <div className="space-y-0.5">
                           <p className="font-bold text-gray-900 flex items-center gap-2">
                             {inv.saree_name}
-                            {inv.product_tag && (
+                            {inv.design_code && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 bg-amber-100 text-amber-900 rounded text-[10px] font-semibold">
                                 <Tag className="w-2.5 h-2.5" />
-                                {inv.product_tag}
+                                {inv.design_code}
                               </span>
                             )}
                           </p>
                           <p className="text-gray-500 text-[11px]">
                             ID: <span className="font-mono text-gray-700 font-semibold">{inv.id}</span>
-                            {inv.category && <span> • Cat: {inv.category}</span>}
+                            {inv.sku && <span> • SKU: <span className="font-mono">{inv.sku}</span></span>}
+                            {inv.category && <span> • {inv.category}</span>}
                             {inv.fabric && <span> • {inv.fabric}</span>}
                             {inv.color && <span> • {inv.color}</span>}
                             {inv.mrp ? <span> • MRP: ₹{inv.mrp}</span> : null}
                             {inv.discount_percentage ? <span> • Disc: {inv.discount_percentage}%</span> : null}
-                            {inv.barcode && <span> • Barcode: {inv.barcode}</span>}
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0 ml-3">

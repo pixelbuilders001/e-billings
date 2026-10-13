@@ -61,7 +61,7 @@ export async function getPaginatedInventory(
     .select('*', { count: 'exact' });
 
   if (cleanTerm) {
-    const filter = `id.ilike.%${cleanTerm}%,saree_name.ilike.%${cleanTerm}%,product_tag.ilike.%${cleanTerm}%,barcode.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%,category.ilike.%${cleanTerm}%,color.ilike.%${cleanTerm}%,fabric.ilike.%${cleanTerm}%`;
+    const filter = `id.ilike.%${cleanTerm}%,saree_name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%,category.ilike.%${cleanTerm}%,color.ilike.%${cleanTerm}%,fabric.ilike.%${cleanTerm}%,design_code.ilike.%${cleanTerm}%,occasion.ilike.%${cleanTerm}%`;
     query = query.or(filter);
   }
 

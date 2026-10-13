@@ -5,10 +5,9 @@ import {
   Users, 
   Settings, 
   LayoutDashboard,
-  LogOut,
-  Shield
+  LogOut
 } from 'lucide-react';
-import { RegistrationStatus } from '../types';
+import type { RegistrationStatus } from '../types';
 
 import { AuthUser } from '../store/useAuthStore';
 
@@ -17,8 +16,8 @@ export type NavTab = 'dashboard' | 'new-invoice' | 'invoices' | 'products' | 'cu
 interface NavbarProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
-  storeName: string;
-  registrationStatus: RegistrationStatus;
+  storeName?: string;
+  registrationStatus?: RegistrationStatus;
   user?: AuthUser | null;
   onLogout?: () => void;
 }
@@ -26,8 +25,6 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onSelectTab,
-  storeName,
-  registrationStatus,
   user,
   onLogout
 }) => {

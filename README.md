@@ -31,11 +31,14 @@ Built with **React 18**, **Vite**, **TypeScript**, **Tailwind CSS**, and **Index
 - One-click browser **Print**, **Download PDF** (via client-side `jsPDF` + `html2canvas`), and native device **Share**.
 - Includes complete seller profile, customer details, HSN codes, rate-wise tax summary table, amount in words, payment record, terms, and authorized signatory box.
 
-### 4. Robust Offline Persistence & Data Safety (`src/db/`)
-- Powered by **IndexedDB** (`idb`), storing thousands of invoices and products without localStorage quota restrictions.
+### 4. Live Supabase Inventory & Offline Resilience (`src/db/`)
+- **Direct Supabase Integration**: Syncs with Supabase table `public.inventory` with full pagination (10, 25, 50, 100 rows), search across saree name, category, fabric, color, tag, or barcode, and real-time total counts.
+- **Catalogue Views**: Displays **MRP (₹)** and **Discount Percentage (%)** directly in inventory tables.
+- **Billing Workflow**: Automatically populates line item **Unit Rate (₹)** with the item's **MRP** and auto-applies pre-configured product discounts.
+- **IndexedDB Fallback**: Powered by **IndexedDB** (`idb`), keeping offline resilience, local product caching, and customer registries intact without quota restrictions.
 - **One-click JSON Backup Export & Restore**: Safe offline backups and cross-device migration.
-- **CSV Export**: Product catalogue export for Excel/accounting reconciliation.
-- Pre-seeded with authentic Banarasi saree weaves (Katan Silk Kadwa, Jangla Bridal, Tanchoi, Kora Organza, Georgette).
+- **Complete Inventory CSV Export**: Exports the full catalogue including MRP, Discount %, and GST rates for Excel/accounting reconciliation.
+- **Pre-seeded Weaves**: Authentic Banarasi saree weaves (Katan Silk Kadwa, Jangla Bridal, Tanchoi, Kora Organza, Georgette).
 
 ---
 

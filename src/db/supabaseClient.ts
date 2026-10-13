@@ -44,7 +44,7 @@ export interface PaginatedResult<T> {
 }
 
 /**
- * Searches the Supabase public.inventory table with full pagination and count support.
+ * Searches the Supabase public.storefront_products table with full pagination and count support.
  * Searches across: id, saree_name, product_tag, barcode, sku, category, fabric, color.
  */
 export async function getPaginatedInventory(
@@ -57,7 +57,7 @@ export async function getPaginatedInventory(
   const to = from + pageSize - 1;
 
   let query = supabase
-    .from('inventory')
+    .from('storefront_products')
     .select('*', { count: 'exact' });
 
   if (cleanTerm) {
@@ -114,7 +114,7 @@ export async function fetchAllInventory(onProgress?: (loaded: number, total: num
   while (hasMore) {
     const to = from + batchSize - 1;
     const { data, count, error } = await supabase
-      .from('inventory')
+      .from('storefront_products')
       .select('*', { count: 'exact' })
       .order('id', { ascending: true })
       .range(from, to);
@@ -142,11 +142,11 @@ export async function fetchAllInventory(onProgress?: (loaded: number, total: num
 }
 
 /**
- * Inserts or updates an item in the Supabase inventory table
+ * Inserts or updates an item in the Supabase storefront_products table
  */
 export async function saveInventoryItem(item: Partial<InventoryItem>): Promise<{ data: any; error: any }> {
   return await supabase
-    .from('inventory')
+    .from('storefront_products')
     .upsert(item)
     .select();
 }

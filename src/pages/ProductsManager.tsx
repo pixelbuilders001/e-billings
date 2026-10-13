@@ -287,7 +287,7 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
             Inventory & Catalogue
           </h1>
           <p className="text-xs text-gray-500">
-            Connected to <strong>public.inventory</strong> on Supabase ({totalCount} total items recorded).
+            Connected to <strong>public.storefront_products</strong> on Supabase ({totalCount} total items recorded).
           </p>
         </div>
 
@@ -334,7 +334,7 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
           }`}
         >
           <Cloud className="w-4 h-4 text-emerald-600" />
-          <span>Supabase Inventory ({totalCount} total)</span>
+          <span>Supabase Products ({totalCount} total)</span>
         </button>
 
         <button
@@ -356,7 +356,7 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
           <div className="flex items-center justify-between border-b pb-3">
             <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider font-serif flex items-center gap-2">
               <Cloud className="w-4 h-4 text-emerald-600" />
-              <span>{isCreating ? 'Add Saree to public.inventory' : `Edit Saree: ${formId}`}</span>
+              <span>{isCreating ? 'Add Saree to public.storefront_products' : `Edit Saree: ${formId}`}</span>
             </h2>
             <button
               type="button"

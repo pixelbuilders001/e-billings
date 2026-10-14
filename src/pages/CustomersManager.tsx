@@ -292,7 +292,67 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
       {/* Customers List */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View for Customers */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {filteredCustomers.map(cust => (
+            <div key={cust.id} className="p-4 space-y-2.5 bg-white active-press">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-slate-900 text-sm">{cust.name}</p>
+                    {cust.loyaltyTier && (
+                      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                        cust.loyaltyTier === 'Gold'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-purple-50 text-purple-800 border border-purple-200'
+                      }`}>
+                        <Award className="w-2.5 h-2.5 text-amber-500" />
+                        {cust.loyaltyTier}
+                      </span>
+                    )}
+                  </div>
+                  {cust.businessName && (
+                    <p className="text-xs text-slate-600 font-medium">{cust.businessName}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => handleStartEdit(cust)}
+                    className="p-1.5 text-slate-500 hover:text-brand-800 bg-slate-50 rounded-lg active-press"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  {cust.id !== 'cust-walkin' && (
+                    <button
+                      onClick={() => handleDelete(cust.id, cust.name)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-lg active-press"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between text-xs pt-1 border-t border-slate-100 gap-2">
+                <a 
+                  href={`tel:${cust.phone}`}
+                  className="font-mono font-bold text-brand-900 flex items-center gap-1.5 bg-brand-50 px-2 py-1 rounded-lg"
+                >
+                  <Phone className="w-3.5 h-3.5 text-brand-700" />
+                  <span>{cust.phone}</span>
+                </a>
+                <span className="text-slate-500 flex items-center gap-1 text-[11px]">
+                  <MapPin className="w-3 h-3 text-slate-400" />
+                  <span>{cust.state}</span>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50/80 text-slate-600 border-b border-slate-200">

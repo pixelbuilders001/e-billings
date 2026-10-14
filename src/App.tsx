@@ -168,7 +168,7 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-12">
+      <main className="flex-1 pb-24 md:pb-12">
         {viewingInvoice ? (
           <InvoiceDocument
             invoice={viewingInvoice}

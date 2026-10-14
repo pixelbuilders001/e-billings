@@ -115,7 +115,7 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm disabled:opacity-60 cursor-pointer"
+              className="w-full mt-6 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm disabled:opacity-60 cursor-pointer active-press"
             >
               {loading ? (
                 <>

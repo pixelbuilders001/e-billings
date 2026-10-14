@@ -647,4 +647,165 @@ export function convertSupabaseSaleToInvoice(
   };
 }
 
+// ================= STORE SETTINGS SUPABASE OPERATIONS =================
+
+export interface SupabaseStoreSettingsRow {
+  id: string;
+  trade_name: string;
+  legal_name: string;
+  address: string;
+  city: string;
+  state: string;
+  state_code: string;
+  phone: string;
+  email: string;
+  gstin: string;
+  registration_status: 'registered' | 'unregistered';
+  logo_url?: string | null;
+  invoice_prefix: string;
+  next_sequence: number;
+  pricing_mode: 'exclusive' | 'inclusive';
+  default_gst_rate: number;
+  supported_gst_rates: number[];
+  round_off_rule: 'nearest_rupee' | 'none';
+  supported_payment_methods: string[];
+  footer_text: string;
+  terms_and_conditions: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export function mapRowToStoreSettings(row: SupabaseStoreSettingsRow): any {
+  return {
+    id: row.id || 'store-default',
+    tradeName: row.trade_name || 'billtoprint',
+    legalName: row.legal_name || 'BillToPrint Retail Private Limited',
+    address: row.address || '',
+    city: row.city || 'Varanasi',
+    state: row.state || 'Uttar Pradesh',
+    stateCode: row.state_code || '09',
+    phone: row.phone || '',
+    email: row.email || '',
+    gstin: row.gstin || '',
+    registrationStatus: row.registration_status || 'registered',
+    logoUrl: row.logo_url || undefined,
+    invoicePrefix: row.invoice_prefix || 'B2P/2026-27/',
+    nextSequence: Number(row.next_sequence) || 1001,
+    pricingMode: row.pricing_mode || 'inclusive',
+    defaultGstRate: Number(row.default_gst_rate) || 5,
+    supportedGstRates: Array.isArray(row.supported_gst_rates) ? row.supported_gst_rates : [0, 5, 12, 18, 28],
+    roundOffRule: row.round_off_rule || 'nearest_rupee',
+    supportedPaymentMethods: (Array.isArray(row.supported_payment_methods) ? row.supported_payment_methods : ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Other']) as any,
+    footerText: row.footer_text || '',
+    termsAndConditions: row.terms_and_conditions || ''
+  };
+}
+
+export function mapStoreSettingsToRow(settings: any): Partial<SupabaseStoreSettingsRow> {
+  return {
+    id: settings.id || 'store-default',
+    trade_name: settings.tradeName,
+    legal_name: settings.legalName,
+    address: settings.address,
+    city: settings.city,
+    state: settings.state,
+    state_code: settings.stateCode,
+    phone: settings.phone,
+    email: settings.email,
+    gstin: settings.gstin,
+    registration_status: settings.registrationStatus,
+    logo_url: settings.logoUrl || null,
+    invoice_prefix: settings.invoicePrefix,
+    next_sequence: settings.nextSequence,
+    pricing_mode: settings.pricingMode,
+    default_gst_rate: settings.defaultGstRate,
+    supported_gst_rates: settings.supportedGstRates,
+    round_off_rule: settings.roundOffRule,
+    supported_payment_methods: settings.supportedPaymentMethods,
+    footer_text: settings.footerText,
+    terms_and_conditions: settings.termsAndConditions
+  };
+}
+
+export async function fetchStoreSettingsFromSupabase(): Promise<any | null> {
+  try {
+    const { data, error } = await supabase
+      .from('store_settings')
+      .select('*')
+      .eq('id', 'store-default')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Supabase fetchStoreSettings warning/error:', error.message);
+      return null;
+    }
+
+    if (!data) return null;
+    return mapRowToStoreSettings(data as SupabaseStoreSettingsRow);
+  } catch (err) {
+    console.warn('Failed to query store_settings from Supabase:', err);
+    return null;
+  }
+}
+
+export async function saveStoreSettingsToSupabase(settings: any): Promise<{ error: any }> {
+  try {
+    const row = mapStoreSettingsToRow(settings);
+    const { error } = await supabase
+      .from('store_settings')
+      .upsert(row, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase saveStoreSettings error:', error);
+      return { error };
+    }
+    return { error: null };
+  } catch (err) {
+    console.error('Exception in saveStoreSettingsToSupabase:', err);
+    return { error: err };
+  }
+}
+
+export async function allocateNextInvoiceNumberFromSupabase(): Promise<string | null> {
+  try {
+    // 1. Try atomic Postgres RPC increment_invoice_sequence if created
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('increment_invoice_sequence', {
+      setting_id: 'store-default'
+    });
+
+    if (!rpcErr && rpcData) {
+      const prefix = rpcData.invoice_prefix || 'B2P/2026-27/';
+      const seq = Number(rpcData.allocated_seq) || 1001;
+      return `${prefix}${String(seq).padStart(4, '0')}`;
+    }
+
+    // 2. Fallback to direct read & increment if RPC not installed
+    const { data, error } = await supabase
+      .from('store_settings')
+      .select('invoice_prefix, next_sequence')
+      .eq('id', 'store-default')
+      .maybeSingle();
+
+    if (error || !data) {
+      console.warn('Supabase allocate sequence fallback warning:', error?.message);
+      return null;
+    }
+
+    const currentSeq = Number(data.next_sequence) || 1001;
+    const prefix = data.invoice_prefix || 'B2P/2026-27/';
+    const seqStr = String(currentSeq).padStart(4, '0');
+    const invoiceNumber = `${prefix}${seqStr}`;
+
+    await supabase
+      .from('store_settings')
+      .update({ next_sequence: currentSeq + 1 })
+      .eq('id', 'store-default');
+
+    return invoiceNumber;
+  } catch (err) {
+    console.warn('Error allocating sequence from Supabase:', err);
+    return null;
+  }
+}
+
 

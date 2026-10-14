@@ -643,10 +643,66 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
       </div>
 
       {/* Main Table View */}
-      <div className="bg-white rounded-xl border border-ivory-border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         {activeTab === 'supabase' ? (
           <div>
-            <div className="overflow-x-auto">
+            {/* Mobile View for Products */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {supabaseInventory.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                  {loadingSupabase ? 'Fetching items from Supabase...' : 'No inventory items found.'}
+                </div>
+              ) : (
+                supabaseInventory.map(inv => (
+                  <div key={inv.id} className="p-4 space-y-2 bg-white active-press">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 pr-2">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {inv.id}
+                          </span>
+                          {inv.product_tag && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+                              {inv.product_tag}
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-bold text-slate-900 text-xs">{inv.saree_name}</p>
+                        <p className="text-[11px] text-slate-500">{inv.category} • {inv.fabric}</p>
+                      </div>
+
+                      <button
+                        onClick={() => handleStartEditSupabase(inv)}
+                        className="p-1.5 text-slate-500 hover:text-brand-900 bg-slate-50 rounded-lg active-press"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        (inv.stock ?? 0) <= 2 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      }`}>
+                        Stock: {inv.stock ?? 0}
+                      </span>
+                      <div className="text-right">
+                        <span className="font-mono font-black text-sm text-brand-900">
+                          ₹{Number(inv.selling_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                        {inv.mrp && Number(inv.mrp) > Number(inv.selling_price) && (
+                          <span className="text-[11px] text-slate-400 line-through ml-1.5">
+                            ₹{Number(inv.mrp).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-emerald-50/70 text-emerald-900 border-b border-emerald-200">

@@ -1059,22 +1059,109 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-ivory-border shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-brand-50/30">
-              <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider">
-                Invoice Line Items ({items.length})
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <h2 className="text-xs font-bold text-brand-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Receipt className="w-4 h-4 text-brand-700" />
+                <span>Invoice Line Items ({items.length})</span>
               </h2>
               <button
                 type="button"
                 onClick={addItemRow}
-                className="flex items-center space-x-1 text-xs font-semibold px-3 py-1.5 bg-brand-800 text-white hover:bg-brand-900 rounded-lg transition"
+                className="flex items-center space-x-1 text-xs font-bold px-3 py-1.5 bg-brand-850 hover:bg-brand-950 text-white rounded-xl shadow-xs transition active-press cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-gold" />
                 <span>Add Row</span>
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile Native View for Line Items */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {items.map((item, idx) => {
+                const computedLine = calcResult.items[idx];
+                return (
+                  <div key={item.id} className="p-4 space-y-3 bg-white">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Item #{idx + 1}</span>
+                        <input
+                          type="text"
+                          placeholder="Item Description / Saree Name"
+                          value={item.description}
+                          onChange={e => updateItemRow(item.id, { description: e.target.value })}
+                          className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-1 focus:ring-brand-700 focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeItemRow(item.id)}
+                        className="p-2 mt-4 text-slate-400 hover:text-rose-600 active-press rounded-lg"
+                        title="Remove item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">Qty</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.qty || ''}
+                          onChange={e => updateItemRow(item.id, { qty: Number(e.target.value) || 0 })}
+                          className="w-full mt-0.5 p-2 text-center font-bold bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">Rate (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice || ''}
+                          onChange={e => updateItemRow(item.id, { unitPrice: Number(e.target.value) || 0 })}
+                          className="w-full mt-0.5 p-2 text-right font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">Discount</label>
+                        <div className="flex items-center space-x-1 mt-0.5">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.discountValue || ''}
+                            placeholder="0"
+                            onChange={e => updateItemRow(item.id, { discountValue: Number(e.target.value) || 0 })}
+                            className="w-full p-2 text-right font-mono bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateItemRow(item.id, { discountType: item.discountType === 'percentage' ? 'fixed' : 'percentage' })}
+                            className="px-2 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 active-press"
+                          >
+                            {item.discountType === 'percentage' ? '%' : '₹'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex flex-col justify-end">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Total</span>
+                        <span className="font-mono font-black text-sm text-brand-900 mt-0.5">
+                          ₹{computedLine ? computedLine.lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StoreSettings, RegistrationStatus, PricingMode, RoundOffRule } from '../types';
 import { saveStoreSettings, exportDatabaseBackup, restoreDatabaseBackup } from '../db';
 import { INDIAN_STATES } from '../engine/indianStates';
-import { Save, Download, Upload, AlertTriangle, ShieldCheck, Check } from 'lucide-react';
+import { Save, Download, Upload, AlertTriangle, ShieldCheck, Check, Cloud, Loader2 } from 'lucide-react';
 
 interface SettingsPageProps {
   settings: StoreSettings;
@@ -11,7 +11,9 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh }) => {
   const [formData, setFormData] = useState<StoreSettings>({ ...settings });
+  const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
   const handleChange = (field: keyof StoreSettings, val: any) => {
@@ -20,10 +22,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveStoreSettings(formData);
-    setSavedSuccess(true);
-    onRefresh();
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setIsSaving(true);
+    setErrorMsg(null);
+    try {
+      await saveStoreSettings(formData);
+      setSavedSuccess(true);
+      onRefresh();
+      setTimeout(() => setSavedSuccess(false), 3500);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update store settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExportBackup = async () => {
@@ -69,13 +79,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-          System & Business Settings
-        </h1>
-        <p className="text-xs text-slate-500 font-medium mt-1">
-          Configure business details, GST compliance, invoice numbering prefixes, and pricing policies.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              System & Business Settings
+            </h1>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <Cloud className="w-3 h-3 text-emerald-600" />
+              Supabase Cloud Synced
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Configure business details, GST compliance, invoice numbering prefixes, and pricing policies synced across all devices.
+          </p>
+        </div>
       </div>
 
       {/* Tax Guardrail Notice from PRD */}
@@ -92,7 +110,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
       {savedSuccess && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-900 flex items-center space-x-2 text-xs font-bold shadow-2xs animate-in fade-in">
           <Check className="w-4 h-4 text-emerald-600" />
-          <span>Store settings updated and applied successfully!</span>
+          <span>Store settings saved to Supabase cloud and applied successfully across all devices!</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-900 flex items-center space-x-2 text-xs font-bold shadow-2xs">
+          <AlertTriangle className="w-4 h-4 text-rose-600" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -308,10 +333,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
         <div className="flex justify-end pt-4 border-t border-slate-100">
           <button
             type="submit"
-            className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition cursor-pointer"
+            disabled={isSaving}
+            className={`flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition cursor-pointer ${
+              isSaving ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
           >
-            <Save className="w-4 h-4 text-gold" />
-            <span>Save Configuration</span>
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 text-gold animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 text-gold" />
+            )}
+            <span>{isSaving ? 'Saving to Cloud...' : 'Save Configuration'}</span>
           </button>
         </div>
       </form>

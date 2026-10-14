@@ -1,6 +1,11 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { StoreSettings, Product, Customer, Invoice } from '../types';
 import { INITIAL_STORE_SETTINGS, INITIAL_PRODUCTS, INITIAL_CUSTOMERS } from './seedData';
+import { 
+  fetchStoreSettingsFromSupabase, 
+  saveStoreSettingsToSupabase, 
+  allocateNextInvoiceNumberFromSupabase 
+} from './supabaseClient';
 
 interface ShreeSareesDB extends DBSchema {
   settings: {
@@ -102,14 +107,39 @@ export async function initDatabase(): Promise<void> {
 
 // ================= SETTINGS OPERATIONS =================
 export async function getStoreSettings(): Promise<StoreSettings> {
+  // 1. Try fetching live from Supabase store_settings table
+  try {
+    const remoteSettings = await fetchStoreSettingsFromSupabase();
+    if (remoteSettings) {
+      // Sync to local cache
+      const db = await getDB();
+      await db.put('settings', remoteSettings);
+      return remoteSettings;
+    }
+  } catch (err) {
+    console.warn('Could not load settings from Supabase, falling back to local cache:', err);
+  }
+
+  // 2. Fallback to local IndexedDB
   const db = await getDB();
   const settings = await db.get('settings', INITIAL_STORE_SETTINGS.id);
   return settings || INITIAL_STORE_SETTINGS;
 }
 
 export async function saveStoreSettings(settings: StoreSettings): Promise<void> {
+  // 1. Save to local IndexedDB immediately
   const db = await getDB();
   await db.put('settings', settings);
+
+  // 2. Persist to Supabase store_settings table
+  try {
+    const { error } = await saveStoreSettingsToSupabase(settings);
+    if (error) {
+      console.warn('Supabase store_settings sync warning:', error);
+    }
+  } catch (err) {
+    console.warn('Failed to sync settings to Supabase:', err);
+  }
 }
 
 // ================= PRODUCT OPERATIONS =================
@@ -181,6 +211,17 @@ export async function deleteInvoice(id: string): Promise<void> {
  * Atomically generates next sequence invoice number and updates settings sequence
  */
 export async function allocateNextInvoiceNumber(): Promise<string> {
+  // 1. Try Supabase for multi-device atomic sequence allocation
+  try {
+    const supaInvNum = await allocateNextInvoiceNumberFromSupabase();
+    if (supaInvNum) {
+      return supaInvNum;
+    }
+  } catch (err) {
+    console.warn('Supabase invoice allocation failed, falling back to local IndexedDB:', err);
+  }
+
+  // 2. Fallback to local IndexedDB
   const db = await getDB();
   const tx = db.transaction('settings', 'readwrite');
   const settings = (await tx.store.get(INITIAL_STORE_SETTINGS.id)) || INITIAL_STORE_SETTINGS;

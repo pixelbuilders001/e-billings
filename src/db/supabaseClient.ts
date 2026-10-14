@@ -44,7 +44,7 @@ export interface PaginatedResult<T> {
 }
 
 /**
- * Searches the Supabase public.storefront_products table with full pagination and count support.
+ * Searches the Supabase public.inventory table with full pagination and count support.
  * Searches across: id, saree_name, product_tag, barcode, sku, category, fabric, color.
  */
 export async function getPaginatedInventory(
@@ -57,7 +57,7 @@ export async function getPaginatedInventory(
   const to = from + pageSize - 1;
 
   let query = supabase
-    .from('storefront_products')
+    .from('inventory')
     .select('*', { count: 'exact' });
 
   if (cleanTerm) {
@@ -114,7 +114,7 @@ export async function fetchAllInventory(onProgress?: (loaded: number, total: num
   while (hasMore) {
     const to = from + batchSize - 1;
     const { data, count, error } = await supabase
-      .from('storefront_products')
+      .from('inventory')
       .select('*', { count: 'exact' })
       .order('id', { ascending: true })
       .range(from, to);
@@ -142,11 +142,11 @@ export async function fetchAllInventory(onProgress?: (loaded: number, total: num
 }
 
 /**
- * Inserts or updates an item in the Supabase storefront_products table
+ * Inserts or updates an item in the Supabase inventory table
  */
 export async function saveInventoryItem(item: Partial<InventoryItem>): Promise<{ data: any; error: any }> {
   return await supabase
-    .from('storefront_products')
+    .from('inventory')
     .upsert(item)
     .select();
 }
@@ -368,6 +368,170 @@ export async function fetchSupabaseSales(): Promise<SupabaseSale[]> {
   }
 }
 
+export interface SupabaseStaff {
+  id: string;
+  name: string;
+  phone?: string;
+  commission_rate: number;
+  is_active: boolean;
+}
+
+export async function fetchSupabaseStaff(): Promise<SupabaseStaff[]> {
+  try {
+    const { data, error } = await supabase
+      .from('staff')
+      .select('id, name, phone, commission_rate, is_active')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.warn('Supabase fetchSupabaseStaff error:', error.message);
+      return [];
+    }
+    return (data as SupabaseStaff[]) || [];
+  } catch (err) {
+    console.warn('Failed to fetch staff from Supabase:', err);
+    return [];
+  }
+}
+
+/**
+ * Resolves an inventory item ID from public.inventory.
+ * NEVER inserts non-sarees or add-ons into public.inventory.
+ */
+export async function resolveInventorySareeId(item: {
+  id?: string;
+  name: string;
+}): Promise<string | null> {
+  const cleanId = (item.id || '').trim();
+
+  // If ID starts with 'addon-', it is strictly an add-on, not a saree!
+  if (cleanId.startsWith('addon-')) {
+    return null;
+  }
+
+  // If ID is provided, verify whether it exists in public.inventory
+  if (cleanId) {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id')
+        .eq('id', cleanId)
+        .maybeSingle();
+      if (!error && data?.id) {
+        return data.id;
+      }
+    } catch {
+      // Continue
+    }
+  }
+
+  // Check if an existing saree in public.inventory matches this exact name
+  const cleanName = (item.name || '').trim();
+  if (cleanName) {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id')
+        .ilike('saree_name', cleanName)
+        .limit(1)
+        .maybeSingle();
+      if (!error && data?.id) {
+        return data.id;
+      }
+    } catch {
+      // Continue
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Removes any mistakenly auto-created addon or non-saree entries from public.inventory.
+ */
+export async function cleanupNonSareeInventoryItems(): Promise<{ count: number; error: any }> {
+  try {
+    const { data: mistakenlyAdded, error: findErr } = await supabase
+      .from('inventory')
+      .select('id, saree_name')
+      .or('saree_name.ilike.%Blouse Piece%,saree_name.ilike.%Petticoat%,saree_name.ilike.%Fall & Pico%,category.eq.General,category.eq.Blouse,category.eq.Petticoat');
+
+    if (findErr) {
+      return { count: 0, error: findErr };
+    }
+
+    if (mistakenlyAdded && mistakenlyAdded.length > 0) {
+      const idsToDelete = mistakenlyAdded.map(item => item.id);
+      const { error: delErr } = await supabase
+        .from('inventory')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (delErr) {
+        console.warn('Error deleting non-saree items from inventory:', delErr);
+        return { count: 0, error: delErr };
+      }
+      return { count: mistakenlyAdded.length, error: null };
+    }
+
+    return { count: 0, error: null };
+  } catch (err) {
+    console.warn('Exception during inventory cleanup:', err);
+    return { count: 0, error: err };
+  }
+}
+
+/**
+ * Records an add-on sale in public.addon_sales and decrements stock in public.addons.
+ * Keeps public.inventory completely untouched.
+ */
+export async function recordSupabaseAddonSale(addonSale: {
+  addon_id: string;
+  addon_name: string;
+  category?: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  customer_name?: string;
+  payment_method?: string;
+}): Promise<void> {
+  try {
+    const cleanId = addonSale.addon_id.replace(/^addon-/, '');
+
+    // 1. Decrement stock in public.addons
+    const { data: addonRow } = await supabase
+      .from('addons')
+      .select('stock')
+      .eq('id', cleanId)
+      .maybeSingle();
+
+    if (addonRow && typeof addonRow.stock === 'number') {
+      const newStock = Math.max(0, addonRow.stock - addonSale.quantity);
+      await supabase
+        .from('addons')
+        .update({ stock: newStock })
+        .eq('id', cleanId);
+    }
+
+    // 2. Record in public.addon_sales ledger
+    await supabase
+      .from('addon_sales')
+      .insert([{
+        addon_id: cleanId,
+        addon_name: addonSale.addon_name,
+        category: addonSale.category || 'Other',
+        quantity: addonSale.quantity,
+        unit_price: addonSale.unit_price,
+        total_amount: addonSale.total_amount,
+        customer_name: addonSale.customer_name || 'Walk-in Customer',
+        payment_method: addonSale.payment_method || 'Cash'
+      }]);
+  } catch (err) {
+    console.warn('Error recording addon sale in Supabase:', err);
+  }
+}
+
 export interface CreateSaleInput {
   sale: Omit<SupabaseSale, 'id' | 'created_at' | 'customers' | 'sale_items'>;
   items: {
@@ -390,7 +554,7 @@ export async function createSupabaseSale(input: CreateSaleInput): Promise<{ data
       return { data: null, error: saleError };
     }
 
-    // 2. Insert items if any
+    // 2. Insert items if any and decrement stock
     if (input.items && input.items.length > 0) {
       const itemsToInsert = input.items.map(item => ({
         sale_id: saleData.id,
@@ -405,6 +569,27 @@ export async function createSupabaseSale(input: CreateSaleInput): Promise<{ data
 
       if (itemsError) {
         console.warn('Warning: sale created but error inserting sale_items:', itemsError.message);
+      } else {
+        // Auto-decrement inventory stock to stay consistent with saree-react-admin
+        for (const item of input.items) {
+          try {
+            const { data: invRow } = await supabase
+              .from('inventory')
+              .select('stock')
+              .eq('id', item.saree_id)
+              .maybeSingle();
+
+            if (invRow && typeof invRow.stock === 'number') {
+              const newStock = Math.max(0, invRow.stock - item.quantity);
+              await supabase
+                .from('inventory')
+                .update({ stock: newStock, updated_by: input.sale.created_by || 'admin' })
+                .eq('id', item.saree_id);
+            }
+          } catch (stkErr) {
+            console.warn('Stock update notice:', stkErr);
+          }
+        }
       }
     }
 
@@ -768,40 +953,27 @@ export async function saveStoreSettingsToSupabase(settings: any): Promise<{ erro
 
 export async function allocateNextInvoiceNumberFromSupabase(): Promise<string | null> {
   try {
-    // 1. Try atomic Postgres RPC increment_invoice_sequence if created
-    const { data: rpcData, error: rpcErr } = await supabase.rpc('increment_invoice_sequence', {
-      setting_id: 'store-default'
-    });
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
 
-    if (!rpcErr && rpcData) {
-      const prefix = rpcData.invoice_prefix || 'B2P/2026-27/';
-      const seq = Number(rpcData.allocated_seq) || 1001;
-      return `${prefix}${String(seq).padStart(4, '0')}`;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const randPart = Math.floor(1000 + Math.random() * 9000);
+      const candidate = `INV-${datePart}-${randPart}`;
+
+      // Check if invoice number is already taken in Supabase sales
+      const { data, error } = await supabase
+        .from('sales')
+        .select('id')
+        .eq('invoice_number', candidate)
+        .maybeSingle();
+
+      if (!error && !data) {
+        return candidate;
+      }
     }
 
-    // 2. Fallback to direct read & increment if RPC not installed
-    const { data, error } = await supabase
-      .from('store_settings')
-      .select('invoice_prefix, next_sequence')
-      .eq('id', 'store-default')
-      .maybeSingle();
-
-    if (error || !data) {
-      console.warn('Supabase allocate sequence fallback warning:', error?.message);
-      return null;
-    }
-
-    const currentSeq = Number(data.next_sequence) || 1001;
-    const prefix = data.invoice_prefix || 'B2P/2026-27/';
-    const seqStr = String(currentSeq).padStart(4, '0');
-    const invoiceNumber = `${prefix}${seqStr}`;
-
-    await supabase
-      .from('store_settings')
-      .update({ next_sequence: currentSeq + 1 })
-      .eq('id', 'store-default');
-
-    return invoiceNumber;
+    const randPart = Math.floor(1000 + Math.random() * 9000);
+    return `INV-${datePart}-${randPart}`;
   } catch (err) {
     console.warn('Error allocating sequence from Supabase:', err);
     return null;

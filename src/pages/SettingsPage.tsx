@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { StoreSettings, RegistrationStatus, PricingMode, RoundOffRule } from '../types';
-import { saveStoreSettings, exportDatabaseBackup, restoreDatabaseBackup } from '../db';
+import { saveStoreSettings, exportDatabaseBackup, restoreDatabaseBackup, clearLocalDummyData } from '../db';
 import { INDIAN_STATES } from '../engine/indianStates';
-import { Save, Download, Upload, AlertTriangle, ShieldCheck, Check, Cloud, Loader2 } from 'lucide-react';
+import { Save, Download, Upload, AlertTriangle, ShieldCheck, Check, Cloud, Loader2, Trash2 } from 'lucide-react';
 
 interface SettingsPageProps {
   settings: StoreSettings;
@@ -385,6 +385,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
               className="hidden"
             />
           </label>
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (confirm('Clear all local IndexedDB cache? All products and sales will be read directly from live Supabase.')) {
+                await clearLocalDummyData();
+                setBackupStatus('All local IndexedDB dummy stores wiped successfully. Using live Supabase data.');
+                onRefresh();
+              }
+            }}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-bold border border-rose-200 transition cursor-pointer active-press"
+          >
+            <Trash2 className="w-4 h-4 text-rose-600" />
+            <span>Wipe Local Cache Data</span>
+          </button>
         </div>
       </div>
     </div>

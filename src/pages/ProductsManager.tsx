@@ -362,7 +362,7 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
           <div className="flex items-center justify-between border-b pb-3">
             <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider font-serif flex items-center gap-2">
               <Cloud className="w-4 h-4 text-emerald-600" />
-              <span>{isCreating ? 'Add Saree to public.storefront_products' : `Edit Saree: ${formId}`}</span>
+              <span>{isCreating ? 'Add Saree to public.inventory' : `Edit Saree: ${formId}`}</span>
             </h2>
             <button
               type="button"

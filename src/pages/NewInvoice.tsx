@@ -21,6 +21,10 @@ import {
   fetchSupabaseAddons,
   SupabaseAddon,
   findSupabaseCustomerByPhone,
+  fetchSupabaseStaff,
+  SupabaseStaff,
+  resolveInventorySareeId,
+  recordSupabaseAddonSale,
   supabase
 } from '../db/supabaseClient';
 import { useAuth } from '../store/useAuthStore';
@@ -68,6 +72,7 @@ interface WorkingItem {
   discountType: DiscountType;
   discountValue: number;
   gstRate: number;
+  purchasePrice?: number;
 }
 
 export const NewInvoice: React.FC<NewInvoiceProps> = ({
@@ -159,10 +164,16 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   // Physical Barcode Scanner Hardware Keystroke Buffer
   const scannerBufferRef = useRef<{ text: string; lastTime: number }>({ text: '', lastTime: 0 });
 
-  // Load available add-ons from Supabase public.addons on mount
+  // Load available add-ons and active staff from Supabase on mount
+  const [staffList, setStaffList] = useState<SupabaseStaff[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+
   useEffect(() => {
     fetchSupabaseAddons().then(addons => {
       setAvailableAddons(addons);
+    });
+    fetchSupabaseStaff().then(list => {
+      setStaffList(list);
     });
   }, []);
 
@@ -350,7 +361,8 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       unitPrice: unitRate,
       discountType: inv.discount_percentage ? 'percentage' : 'fixed',
       discountValue: inv.discount_percentage ? Number(inv.discount_percentage) : (Number(inv.discount_amount) || 0),
-      gstRate: inv.gst_rate !== undefined && inv.gst_rate !== null ? Number(inv.gst_rate) : (settings.defaultGstRate || 5)
+      gstRate: inv.gst_rate !== undefined && inv.gst_rate !== null ? Number(inv.gst_rate) : (settings.defaultGstRate || 5),
+      purchasePrice: Number(inv.purchase_price) || 0
     };
 
     if (emptyIndex !== -1) {
@@ -379,7 +391,8 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       unitPrice: Number(addon.selling_price) || 0,
       discountType: 'percentage',
       discountValue: 0,
-      gstRate: settings.defaultGstRate || 5
+      gstRate: settings.defaultGstRate || 5,
+      purchasePrice: Number(addon.purchase_price) || 0
     };
 
     if (emptyIndex !== -1) {
@@ -732,12 +745,27 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
             }
           }
 
+          // Calculate profit matching admin panel logic
+          let totalPurchaseCost = 0;
+          for (const it of calcResult.items) {
+            const matchingWorkItem = items.find(w => w.id === it.id);
+            const pPrice = matchingWorkItem?.purchasePrice || 0;
+            totalPurchaseCost += pPrice * it.qty;
+          }
+          const netProfit = Math.max(0, calcResult.subtotal - calcResult.totalDiscount - totalPurchaseCost);
+
+          // Calculate salesperson commission
+          const staffMember = staffList.find(s => s.id === selectedStaffId);
+          const commissionEarned = staffMember && staffMember.commission_rate > 0
+            ? Math.round((calcResult.subtotal * staffMember.commission_rate) / 100)
+            : 0;
+
           // Build sales payload matching public.sales schema
           const salePayload: any = {
             invoice_number: invNumber,
             customer_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(supabaseCustomerId || '') ? supabaseCustomerId : null,
             total_amount: calcResult.grandTotal,
-            profit: 0,
+            profit: netProfit,
             payment_mode: (paymentMethod || 'cash').toLowerCase(),
             discount_amount: calcResult.totalDiscount,
             discount_percentage: billDiscountType === 'percentage' ? billDiscountValue : null,
@@ -754,18 +782,54 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
             amount_paid: paidSoFar,
             due_amount: balanceDue,
             payment_status: payStatus === 'paid' ? 'paid' : payStatus === 'partially_paid' ? 'partially_paid' : 'due',
-            created_by: user?.email || 'admin'
+            created_by: user?.email || 'admin',
+            updated_by: user?.email || 'admin',
+            salesperson_id: selectedStaffId || null,
+            commission_earned: commissionEarned
           };
 
-          const saleItemsPayload = calcResult.items.map(it => ({
-            saree_id: it.productId || it.description,
-            quantity: it.qty,
-            selling_price: it.unitPrice
-          }));
+          // Process items: record add-ons in addon_sales and only link actual sarees in sale_items
+          const sareeItemsPayload: { saree_id: string; quantity: number; selling_price: number }[] = [];
+
+          for (const it of calcResult.items) {
+            const isAddon = (it.productId || '').startsWith('addon-') || 
+              availableAddons.some(a => a.id === it.productId || a.name.toLowerCase() === it.description.toLowerCase());
+
+            if (isAddon) {
+              // Record add-on in public.addon_sales and decrement public.addons stock (keeps inventory strictly for sarees)
+              const cleanAddonId = (it.productId || '').replace(/^addon-/, '');
+              const addonObj = availableAddons.find(a => a.id === cleanAddonId || a.name.toLowerCase() === it.description.toLowerCase());
+
+              await recordSupabaseAddonSale({
+                addon_id: addonObj?.id || cleanAddonId,
+                addon_name: it.description,
+                category: addonObj?.category || 'Other',
+                quantity: it.qty,
+                unit_price: it.unitPrice,
+                total_amount: it.lineTotal,
+                customer_name: customerName,
+                payment_method: paymentMethod
+              });
+            } else {
+              // Saree item: resolve existing ID from public.inventory
+              const sareeId = await resolveInventorySareeId({
+                id: it.productId,
+                name: it.description
+              });
+
+              if (sareeId) {
+                sareeItemsPayload.push({
+                  saree_id: sareeId,
+                  quantity: it.qty,
+                  selling_price: it.unitPrice
+                });
+              }
+            }
+          }
 
           const { data: createdSale, error: saleErr } = await createSupabaseSale({
             sale: salePayload,
-            items: saleItemsPayload
+            items: sareeItemsPayload
           });
 
           if (!saleErr && createdSale?.id) {
@@ -1535,6 +1599,22 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                       className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-600 mb-1">Salesperson / Attendant</label>
+                  <select
+                    value={selectedStaffId}
+                    onChange={e => setSelectedStaffId(e.target.value)}
+                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs"
+                  >
+                    <option value="">Direct Counter (No Agent)</option>
+                    {staffList.map(st => (
+                      <option key={st.id} value={st.id}>
+                        {st.name} {st.commission_rate > 0 ? `(${st.commission_rate}% comm)` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex justify-between items-center p-2 rounded bg-gray-50 text-xs">

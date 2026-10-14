@@ -153,17 +153,13 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
       >
         {/* Header: Brand, Title & Metadata */}
         <div className="border-b-2 border-brand-800 pb-5 mb-5 flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div className="flex items-start space-x-4">
-            <div className="w-14 h-14 rounded-full bg-brand-800 text-gold flex items-center justify-center font-serif text-2xl font-bold border-2 border-gold print:border-brand-800">
-              श्री
-            </div>
-            <div>
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brand-800 tracking-tight">
-                {seller.tradeName}
-              </h1>
-              <p className="text-xs text-gray-600 font-medium">
-                {seller.legalName}
-              </p>
+          <div>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brand-800 tracking-tight">
+              {seller.tradeName}
+            </h1>
+            <p className="text-xs text-gray-600 font-medium">
+              {seller.legalName}
+            </p>
               <p className="text-xs text-gray-600 mt-1 max-w-sm">
                 {seller.address}, {seller.city}, {seller.state} - Code: {seller.stateCode}
               </p>
@@ -171,12 +167,11 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
                 <span><strong>Phone:</strong> {seller.phone}</span>
                 {seller.email && <span><strong>Email:</strong> {seller.email}</span>}
               </div>
-              {isTaxInvoice && seller.gstin && (
-                <div className="mt-1.5 inline-block bg-amber-50 border border-gold/40 px-2 py-0.5 rounded text-xs font-mono font-bold text-brand-900">
-                  GSTIN: {seller.gstin}
-                </div>
-              )}
-            </div>
+            {isTaxInvoice && seller.gstin && (
+              <div className="mt-1.5 inline-block bg-amber-50 border border-gold/40 px-2 py-0.5 rounded text-xs font-mono font-bold text-brand-900">
+                GSTIN: {seller.gstin}
+              </div>
+            )}
           </div>
 
           <div className="text-left sm:text-right flex flex-col justify-between">

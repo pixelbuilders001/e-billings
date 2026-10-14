@@ -12,7 +12,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   email: 'contact@billtoprint.com',
   gstin: '09AABCU9603R1ZM',
   registrationStatus: 'registered',
-  invoicePrefix: 'B2P/2026-27/',
+  invoicePrefix: 'INV-',
   nextSequence: 1001,
   pricingMode: 'inclusive',
   defaultGstRate: 5,
@@ -23,147 +23,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   termsAndConditions: '1. Goods once sold can be exchanged within 7 days in original condition with bill.\n2. No cash refunds.\n3. Subject to Varanasi Jurisdiction only.'
 };
 
-export const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: 'prod-1',
-    name: 'Pure Katan Silk Kadwa Saree (Maroon & Antique Gold)',
-    sku: 'SBS-KAT-001',
-    barcode: '890100100101',
-    category: 'Katan Silk',
-    fabric: 'Pure Mulberry Silk',
-    colour: 'Deep Maroon with Antique Gold Zari',
-    hsnCode: '5007',
-    unit: 'Nos',
-    sellingPrice: 18500,
-    gstRate: 5,
-    active: true,
-    stockQty: 8,
-    createdAt: '2026-10-01T10:00:00Z',
-    updatedAt: '2026-10-01T10:00:00Z'
-  },
-  {
-    id: 'prod-2',
-    name: 'Royal Banarasi Jangla Bridal Saree (Crimson Red)',
-    sku: 'SBS-JAN-002',
-    barcode: '890100100102',
-    category: 'Jangla',
-    fabric: 'Pure Katan Silk',
-    colour: 'Crimson Red with Real Zari',
-    hsnCode: '5007',
-    unit: 'Nos',
-    sellingPrice: 34000,
-    gstRate: 5,
-    active: true,
-    stockQty: 4,
-    createdAt: '2026-10-01T10:00:00Z',
-    updatedAt: '2026-10-01T10:00:00Z'
-  },
-  {
-    id: 'prod-3',
-    name: 'Vintage Tanchoi Silk Saree (Emerald Green)',
-    sku: 'SBS-TAN-003',
-    barcode: '890100100103',
-    category: 'Tanchoi',
-    fabric: 'Pure Silk with Weft Weave',
-    colour: 'Emerald Green & Copper',
-    hsnCode: '5007',
-    unit: 'Nos',
-    sellingPrice: 14500,
-    gstRate: 5,
-    active: true,
-    stockQty: 12,
-    createdAt: '2026-10-02T11:00:00Z',
-    updatedAt: '2026-10-02T11:00:00Z'
-  },
-  {
-    id: 'prod-4',
-    name: 'Organza Kora Zari Saree (Pastel Peach)',
-    sku: 'SBS-ORG-004',
-    barcode: '890100100104',
-    category: 'Organza / Kora',
-    fabric: 'Pure Kora Organza Silk',
-    colour: 'Pastel Peach with Silver Zari',
-    hsnCode: '5007',
-    unit: 'Nos',
-    sellingPrice: 12500,
-    gstRate: 5,
-    active: true,
-    stockQty: 6,
-    createdAt: '2026-10-02T12:00:00Z',
-    updatedAt: '2026-10-02T12:00:00Z'
-  },
-  {
-    id: 'prod-5',
-    name: 'Georgette Bandhani Banarasi Saree (Midnight Blue)',
-    sku: 'SBS-GEO-005',
-    barcode: '890100100105',
-    category: 'Khaddi Georgette',
-    fabric: 'Khaddi Georgette Silk',
-    colour: 'Midnight Blue & Gold',
-    hsnCode: '5007',
-    unit: 'Nos',
-    sellingPrice: 16800,
-    gstRate: 5,
-    active: true,
-    stockQty: 7,
-    createdAt: '2026-10-03T10:00:00Z',
-    updatedAt: '2026-10-03T10:00:00Z'
-  },
-  {
-    id: 'prod-6',
-    name: 'Handwoven Banarasi Silk Dupatta / Stole',
-    sku: 'SBS-DUP-006',
-    barcode: '890100100106',
-    category: 'Dupatta',
-    fabric: 'Pure Silk',
-    colour: 'Mustard Yellow',
-    hsnCode: '6214',
-    unit: 'Nos',
-    sellingPrice: 4500,
-    gstRate: 12,
-    active: true,
-    stockQty: 15,
-    createdAt: '2026-10-04T10:00:00Z',
-    updatedAt: '2026-10-04T10:00:00Z'
-  }
-];
+export const INITIAL_PRODUCTS: Product[] = [];
 
-export const INITIAL_CUSTOMERS: Customer[] = [
-  {
-    id: 'cust-walkin',
-    name: 'Walk-in Retail Customer',
-    phone: '9999999999',
-    billingAddress: 'Varanasi Store Counter',
-    city: 'Varanasi',
-    state: 'Uttar Pradesh',
-    stateCode: '09',
-    notes: 'Default walk-in retail buyer',
-    createdAt: '2026-10-01T09:00:00Z'
-  },
-  {
-    id: 'cust-1',
-    name: 'Smt. Ananya Sharma',
-    phone: '9820123456',
-    email: 'ananya.sharma@example.com',
-    billingAddress: 'Flat 402, Sea Green Apts, Worli',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    stateCode: '27',
-    notes: 'Bridal collection selection',
-    createdAt: '2026-10-05T14:30:00Z'
-  },
-  {
-    id: 'cust-2',
-    name: 'Varanasi Silk Emporium (B2B)',
-    phone: '9415212345',
-    email: 'purchases@vns-silk.com',
-    billingAddress: 'Shop 12, Thatheri Bazaar, Chowk',
-    city: 'Varanasi',
-    state: 'Uttar Pradesh',
-    stateCode: '09',
-    gstin: '09AAECV1234K1ZB',
-    businessName: 'Varanasi Silk Emporium',
-    notes: 'Regular wholesale buyer',
-    createdAt: '2026-10-06T11:00:00Z'
-  }
-];
+export const INITIAL_CUSTOMERS: Customer[] = [];
+

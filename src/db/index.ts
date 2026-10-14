@@ -1,6 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { StoreSettings, Product, Customer, Invoice } from '../types';
-import { INITIAL_STORE_SETTINGS, INITIAL_PRODUCTS, INITIAL_CUSTOMERS } from './seedData';
+import { INITIAL_STORE_SETTINGS } from './seedData';
 import { 
   fetchStoreSettingsFromSupabase, 
   saveStoreSettingsToSupabase, 
@@ -69,7 +69,7 @@ export async function getDB(): Promise<IDBPDatabase<ShreeSareesDB>> {
 }
 
 /**
- * Initializes database with default seed data if empty
+ * Initializes database and cleans out any legacy dummy records
  */
 export async function initDatabase(): Promise<void> {
   const db = await getDB();
@@ -79,30 +79,32 @@ export async function initDatabase(): Promise<void> {
   if (!existingSettings) {
     await db.put('settings', INITIAL_STORE_SETTINGS);
   } else if (!existingSettings.pricingMode || existingSettings.pricingMode === 'exclusive') {
-    // Migrate stored settings to inclusive pricing mode as requested
+    // Migrate stored settings to inclusive pricing mode
     existingSettings.pricingMode = 'inclusive';
     await db.put('settings', existingSettings);
   }
 
-  // Products check
-  const countProducts = await db.count('products');
-  if (countProducts === 0) {
-    const tx = db.transaction('products', 'readwrite');
-    for (const prod of INITIAL_PRODUCTS) {
-      await tx.store.put(prod);
-    }
-    await tx.done;
+  // Clean out any legacy dummy products from local IndexedDB
+  const legacyProductIds = ['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5', 'prod-6'];
+  for (const id of legacyProductIds) {
+    await db.delete('products', id);
   }
 
-  // Customers check
-  const countCustomers = await db.count('customers');
-  if (countCustomers === 0) {
-    const tx = db.transaction('customers', 'readwrite');
-    for (const cust of INITIAL_CUSTOMERS) {
-      await tx.store.put(cust);
-    }
-    await tx.done;
+  // Clean out any legacy dummy customers
+  const legacyCustomerIds = ['cust-1', 'cust-2'];
+  for (const id of legacyCustomerIds) {
+    await db.delete('customers', id);
   }
+}
+
+/**
+ * Clears all local IndexedDB stores (products, customers, invoices)
+ */
+export async function clearLocalDummyData(): Promise<void> {
+  const db = await getDB();
+  await db.clear('products');
+  await db.clear('customers');
+  await db.clear('invoices');
 }
 
 // ================= SETTINGS OPERATIONS =================
@@ -208,7 +210,7 @@ export async function deleteInvoice(id: string): Promise<void> {
 }
 
 /**
- * Atomically generates next sequence invoice number and updates settings sequence
+ * Atomically generates invoice number matching format INV-YYYYMMDD-XXXX
  */
 export async function allocateNextInvoiceNumber(): Promise<string> {
   // 1. Try Supabase for multi-device atomic sequence allocation
@@ -218,24 +220,14 @@ export async function allocateNextInvoiceNumber(): Promise<string> {
       return supaInvNum;
     }
   } catch (err) {
-    console.warn('Supabase invoice allocation failed, falling back to local IndexedDB:', err);
+    console.warn('Supabase invoice allocation failed, falling back to local generator:', err);
   }
 
-  // 2. Fallback to local IndexedDB
-  const db = await getDB();
-  const tx = db.transaction('settings', 'readwrite');
-  const settings = (await tx.store.get(INITIAL_STORE_SETTINGS.id)) || INITIAL_STORE_SETTINGS;
-  
-  const seq = settings.nextSequence || 1001;
-  const padLength = 4;
-  const seqStr = String(seq).padStart(padLength, '0');
-  const invoiceNumber = `${settings.invoicePrefix || 'SBS/2026-27/'}${seqStr}`;
-
-  settings.nextSequence = seq + 1;
-  await tx.store.put(settings);
-  await tx.done;
-
-  return invoiceNumber;
+  // 2. Fallback matching the same standard format
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const randPart = Math.floor(1000 + Math.random() * 9000);
+  return `INV-${datePart}-${randPart}`;
 }
 
 // ================= BACKUP & RESTORE =================

@@ -25,7 +25,8 @@ import { useAuth } from './store/useAuthStore';
 import { 
   fetchSupabaseCustomers, 
   fetchSupabaseSales, 
-  convertSupabaseSaleToInvoice 
+  convertSupabaseSaleToInvoice,
+  cleanupNonSareeInventoryItems
 } from './db/supabaseClient';
 import { Loader2 } from 'lucide-react';
 
@@ -48,6 +49,7 @@ export function App() {
   const loadData = async () => {
     try {
       await initDatabase();
+      cleanupNonSareeInventoryItems();
       const [s, p, localCusts, localInvs, supaCusts, supaSales] = await Promise.all([
         getStoreSettings(),
         getAllProducts(),

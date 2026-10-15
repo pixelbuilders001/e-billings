@@ -936,10 +936,6 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 <span className="flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md">
                   <Cloud className="w-3 h-3 text-emerald-600" /> Live Inventory
                 </span>
-                <span>•</span>
-                <span className="flex items-center gap-1 text-purple-800 bg-purple-50 border border-purple-200/70 px-2 py-0.5 rounded-md">
-                  <Sparkles className="w-3 h-3 text-purple-600" /> Add-ons ({availableAddons.length})
-                </span>
               </div>
             </div>
 
@@ -1001,27 +997,6 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   <span className={`w-2 h-2 rounded-full ${isRemoteConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gold'}`} />
                 </button>
               </div>
-
-              {/* Quick Add-ons Bar for instant 1-click blouse pieces, aster/astar, and accessories */}
-              {availableAddons.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-purple-600" />
-                    <span>Quick Add-ons:</span>
-                  </span>
-                  {availableAddons.slice(0, 6).map(addon => (
-                    <button
-                      key={addon.id}
-                      type="button"
-                      onClick={() => handleSelectAddon(addon)}
-                      className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active-press shadow-2xs"
-                    >
-                      <span>+ {addon.name}</span>
-                      <span className="font-mono text-[10px] text-purple-700 font-bold">₹{addon.selling_price}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Dropdown Results (Supabase + Local) */}

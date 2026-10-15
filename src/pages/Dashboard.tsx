@@ -14,7 +14,9 @@ interface DashboardProps {
   settings: StoreSettings;
   onNewInvoice: () => void;
   onViewInvoice: (invoice: Invoice) => void;
-  onGoToSettings: () => void;
+  onGoToSettings?: () => void;
+  showKpis?: boolean;
+  showRecentList?: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -22,7 +24,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   settings,
   onNewInvoice,
   onViewInvoice,
-  onGoToSettings
+  onGoToSettings,
+  showKpis = true,
+  showRecentList = true
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -89,86 +93,89 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Today's Sales */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Sales</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-              <TrendingUp className="w-4 h-4" />
+      {showKpis && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Today's Sales */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
+            <div className="flex items-center justify-between text-slate-500 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Sales</span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              ₹{todaySales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {todayInvoices.length} invoices generated today
+              </p>
             </div>
           </div>
-          <p className="text-2xl font-black font-mono text-slate-900 tracking-tight">
-            ₹{todaySales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <p className="text-[11px] text-slate-500 font-medium">
-              {todayInvoices.length} invoices generated today
-            </p>
-          </div>
-        </div>
 
-        {/* All-Time Invoiced */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Sales</span>
-            <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-800 flex items-center justify-center border border-brand-100">
-              <IndianRupee className="w-4 h-4" />
+          {/* All-Time Invoiced */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
+            <div className="flex items-center justify-between text-slate-500 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Sales</span>
+              <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-800 flex items-center justify-center border border-brand-100">
+                <IndianRupee className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              ₹{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {finalizedInvoices.length} finalized invoices
+              </p>
             </div>
           </div>
-          <p className="text-2xl font-black font-mono text-slate-900 tracking-tight">
-            ₹{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
-            <p className="text-[11px] text-slate-500 font-medium">
-              {finalizedInvoices.length} finalized invoices
-            </p>
-          </div>
-        </div>
 
-        {/* Cash & Payments Collected */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Collected Total</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-              <CheckCircle className="w-4 h-4" />
+          {/* Cash & Payments Collected */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
+            <div className="flex items-center justify-between text-slate-500 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Collected Total</span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <CheckCircle className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl font-black font-mono text-emerald-700 tracking-tight">
+              ₹{totalCollected.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Received via Cash / UPI / Card
+              </p>
             </div>
           </div>
-          <p className="text-2xl font-black font-mono text-emerald-700 tracking-tight">
-            ₹{totalCollected.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Received via Cash / UPI / Card
-            </p>
-          </div>
-        </div>
 
-        {/* Balance Due */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Balance Due</span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-              <Clock className="w-4 h-4" />
+          {/* Balance Due */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition duration-200">
+            <div className="flex items-center justify-between text-slate-500 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Balance Due</span>
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl font-black font-mono text-rose-700 tracking-tight">
+              ₹{totalBalanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {pendingCount} invoices pending payment
+              </p>
             </div>
           </div>
-          <p className="text-2xl font-black font-mono text-rose-700 tracking-tight">
-            ₹{totalBalanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-            <p className="text-[11px] text-slate-500 font-medium">
-              {pendingCount} invoices pending payment
-            </p>
-          </div>
         </div>
-      </div>
+      )}
 
       {/* Recent Invoices Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      {showRecentList && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Recent Invoices</h2>
@@ -282,6 +289,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </>
         )}
       </div>
+      )}
     </div>
   );
 };

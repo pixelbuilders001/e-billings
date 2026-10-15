@@ -3,14 +3,18 @@ import {
   StoreSettings, 
   Product, 
   Customer, 
-  Invoice 
+  Invoice,
+  LocalDisplayPreferences
 } from './types';
 import { 
   initDatabase, 
   getStoreSettings, 
   getAllProducts, 
   getAllCustomers, 
-  getAllInvoices 
+  getAllInvoices,
+  getInitialDisplayPreferences,
+  getLocalDisplayPreferences,
+  saveLocalDisplayPreferences
 } from './db';
 import { Navbar, NavTab } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
@@ -32,7 +36,11 @@ import { Loader2 } from 'lucide-react';
 
 export function App() {
   const [loading, setLoading] = useState(true);
-  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [displayPrefs, setDisplayPrefs] = useState<LocalDisplayPreferences>(getInitialDisplayPreferences);
+  const [currentTab, setCurrentTab] = useState<NavTab>(() => {
+    const initialPrefs = getInitialDisplayPreferences();
+    return initialPrefs.showDashboard ? 'dashboard' : 'new-invoice';
+  });
   
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,17 +58,24 @@ export function App() {
     try {
       await initDatabase();
       cleanupNonSareeInventoryItems();
-      const [s, p, localCusts, localInvs, supaCusts, supaSales] = await Promise.all([
+      const [s, p, localCusts, localInvs, supaCusts, supaSales, prefs] = await Promise.all([
         getStoreSettings(),
         getAllProducts(),
         getAllCustomers(),
         getAllInvoices(),
         fetchSupabaseCustomers(),
-        fetchSupabaseSales()
+        fetchSupabaseSales(),
+        getLocalDisplayPreferences()
       ]);
 
       setSettings(s);
       setProducts(p);
+      setDisplayPrefs(prefs);
+
+      // If dashboard is hidden on initial load and currentTab is dashboard, redirect
+      if (!prefs.showDashboard && currentTab === 'dashboard') {
+        setCurrentTab('new-invoice');
+      }
 
       // Merge customers: Map Supabase customers to Customer type
       const mappedSupaCusts: Customer[] = supaCusts.map(sc => ({
@@ -127,6 +142,21 @@ export function App() {
     setCurrentTab('new-invoice');
   };
 
+  const handleUpdateDisplayPrefs = async (newPrefs: LocalDisplayPreferences) => {
+    setDisplayPrefs(newPrefs);
+    await saveLocalDisplayPreferences(newPrefs);
+
+    // If user hides currently active tab, redirect smoothly to new-invoice
+    if (
+      (currentTab === 'dashboard' && !newPrefs.showDashboard) ||
+      (currentTab === 'invoices' && !newPrefs.showInvoicesTab) ||
+      (currentTab === 'products' && !newPrefs.showCatalogueTab) ||
+      (currentTab === 'customers' && !newPrefs.showCustomersTab)
+    ) {
+      setCurrentTab('new-invoice');
+    }
+  };
+
   if (!isInitialized || loading || !settings) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -167,6 +197,7 @@ export function App() {
         registrationStatus={settings.registrationStatus}
         user={user}
         onLogout={logout}
+        displayPrefs={displayPrefs}
       />
 
       {/* Main Content Area */}
@@ -188,6 +219,8 @@ export function App() {
                 }}
                 onViewInvoice={inv => setViewingInvoice(inv)}
                 onGoToSettings={() => setCurrentTab('settings')}
+                showKpis={displayPrefs.showDashboardKpis}
+                showRecentList={displayPrefs.showDashboardRecentInvoices}
               />
             )}
 
@@ -233,6 +266,8 @@ export function App() {
               <SettingsPage
                 settings={settings}
                 onRefresh={loadData}
+                displayPrefs={displayPrefs}
+                onUpdateDisplayPrefs={handleUpdateDisplayPrefs}
               />
             )}
           </>

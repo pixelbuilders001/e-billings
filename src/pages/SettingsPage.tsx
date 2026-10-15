@@ -1,20 +1,125 @@
 import React, { useState } from 'react';
-import { StoreSettings, RegistrationStatus, PricingMode, RoundOffRule } from '../types';
-import { saveStoreSettings, exportDatabaseBackup, restoreDatabaseBackup, clearLocalDummyData } from '../db';
+import { StoreSettings, RegistrationStatus, PricingMode, RoundOffRule, LocalDisplayPreferences } from '../types';
+import { saveStoreSettings, exportDatabaseBackup, restoreDatabaseBackup, clearLocalDummyData, DEFAULT_DISPLAY_PREFERENCES } from '../db';
 import { INDIAN_STATES } from '../engine/indianStates';
-import { Save, Download, Upload, AlertTriangle, ShieldCheck, Check, Cloud, Loader2, Trash2 } from 'lucide-react';
+import { 
+  Save, 
+  Download, 
+  Upload, 
+  AlertTriangle, 
+  ShieldCheck, 
+  Check, 
+  Cloud, 
+  Loader2, 
+  Trash2,
+  Sliders,
+  LayoutDashboard,
+  BarChart3,
+  ListFilter,
+  FileText,
+  Package,
+  Users,
+  RotateCcw,
+  HardDrive
+} from 'lucide-react';
 
 interface SettingsPageProps {
   settings: StoreSettings;
   onRefresh: () => void;
+  displayPrefs: LocalDisplayPreferences;
+  onUpdateDisplayPrefs: (prefs: LocalDisplayPreferences) => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh }) => {
+interface ToggleSwitchProps {
+  enabled: boolean;
+  onChange: (val: boolean) => void;
+  label: string;
+  description: string;
+  icon?: React.ReactNode;
+}
+
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
+  enabled,
+  onChange,
+  label,
+  description,
+  icon
+}) => {
+  return (
+    <div
+      onClick={() => onChange(!enabled)}
+      className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none shadow-xs ${
+        enabled
+          ? 'bg-emerald-50/60 border-emerald-300/80 hover:bg-emerald-50'
+          : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80'
+      }`}
+    >
+      <div className="flex items-start space-x-3.5 pr-3">
+        {icon && (
+          <div
+            className={`p-2 rounded-xl shrink-0 transition-colors ${
+              enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+            }`}
+          >
+            {icon}
+          </div>
+        )}
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-extrabold text-slate-900">{label}</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                enabled ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+              }`}
+            >
+              {enabled ? 'Visible' : 'Hidden'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5">{description}</p>
+        </div>
+      </div>
+
+      {/* Prominent iOS-Style Toggle Switch */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        onClick={e => {
+          e.stopPropagation();
+          onChange(!enabled);
+        }}
+        className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+          enabled ? 'bg-emerald-600' : 'bg-slate-300'
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+};
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({ 
+  settings, 
+  onRefresh,
+  displayPrefs,
+  onUpdateDisplayPrefs
+}) => {
+  const [activeTab, setActiveTab] = useState<'visibility' | 'business' | 'backup' | 'all'>('visibility');
   const [formData, setFormData] = useState<StoreSettings>({ ...settings });
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
+
+  const prefs: LocalDisplayPreferences = {
+    ...DEFAULT_DISPLAY_PREFERENCES,
+    ...displayPrefs
+  };
 
   const handleChange = (field: keyof StoreSettings, val: any) => {
     setFormData(prev => ({ ...prev, [field]: val }));
@@ -96,16 +201,169 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
         </div>
       </div>
 
-      {/* Tax Guardrail Notice from PRD */}
-      <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 flex items-start gap-3.5 text-xs text-amber-900 shadow-2xs">
-        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="font-bold text-amber-950">Statutory Tax Compliance Notice</p>
-          <p className="text-amber-800/90 mt-0.5 leading-relaxed">
-            GST rates, HSN codes, and invoice structures are configurable. Before production billing, verify your GSTIN registration status, saree HSN codes, and applicable tax rates with your chartered accountant.
-          </p>
-        </div>
+      {/* Settings Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab('visibility')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs ${
+            activeTab === 'visibility'
+              ? 'bg-brand-900 text-gold ring-2 ring-gold/40 shadow-md'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Page & Feature Visibility</span>
+          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-900 text-[9px] font-black rounded-full uppercase">Device Local</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('business')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs ${
+            activeTab === 'business'
+              ? 'bg-brand-900 text-gold ring-2 ring-gold/40 shadow-md'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <Cloud className="w-4 h-4 text-emerald-500" />
+          <span>Store & GST Tax Settings</span>
+          <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black rounded-full uppercase">Cloud Synced</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('backup')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs ${
+            activeTab === 'backup'
+              ? 'bg-brand-900 text-gold ring-2 ring-gold/40 shadow-md'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span>Data Backup & Restore</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('all')}
+          className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            activeTab === 'all'
+              ? 'bg-slate-900 text-white'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          Show All
+        </button>
       </div>
+
+      {/* SECTION: LOCAL DEVICE PAGE & VISIBILITY CONTROLS (INDEXEDDB) */}
+      {(activeTab === 'visibility' || activeTab === 'all') && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-brand-800/10 shadow-lg text-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 gap-3">
+            <div>
+              <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base tracking-tight">
+                <Sliders className="w-5 h-5 text-brand-900" />
+                <span>Local Device Page & Feature Visibility</span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Toggle tabs and metrics on or off for this specific device. Stored locally in IndexedDB.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                <HardDrive className="w-3.5 h-3.5 text-amber-600" />
+                IndexedDB (Local Only)
+              </span>
+              <button
+                type="button"
+                onClick={() => onUpdateDisplayPrefs(DEFAULT_DISPLAY_PREFERENCES)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 rounded-xl transition active-press cursor-pointer border border-slate-200"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                <span>Reset Defaults</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Navigation Pages */}
+          <div className="space-y-3 pt-1">
+            <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
+              <span>Main Navigation Pages (Show / Hide)</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <ToggleSwitch
+                enabled={prefs.showDashboard}
+                onChange={val => onUpdateDisplayPrefs({ ...prefs, showDashboard: val })}
+                label="Dashboard Page"
+                description="Show or hide the Dashboard tab in top/bottom navigation."
+                icon={<LayoutDashboard className="w-5 h-5" />}
+              />
+
+              <ToggleSwitch
+                enabled={prefs.showInvoicesTab}
+                onChange={val => onUpdateDisplayPrefs({ ...prefs, showInvoicesTab: val })}
+                label="Invoices Page"
+                description="Historical bills, invoice search, and print archives."
+                icon={<FileText className="w-5 h-5" />}
+              />
+
+              <ToggleSwitch
+                enabled={prefs.showCatalogueTab}
+                onChange={val => onUpdateDisplayPrefs({ ...prefs, showCatalogueTab: val })}
+                label="Catalogue / Saree Inventory"
+                description="Product catalog, saree inventory browser, and prices."
+                icon={<Package className="w-5 h-5" />}
+              />
+
+              <ToggleSwitch
+                enabled={prefs.showCustomersTab}
+                onChange={val => onUpdateDisplayPrefs({ ...prefs, showCustomersTab: val })}
+                label="Customers Directory"
+                description="Client records, contact phonebook, and loyalty points."
+                icon={<Users className="w-5 h-5" />}
+              />
+            </div>
+          </div>
+
+          {/* Dashboard Components */}
+          <div className="space-y-3 pt-3 border-t border-slate-100">
+            <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
+              <span>Dashboard Inside Components (Show / Hide)</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <ToggleSwitch
+                enabled={prefs.showDashboardKpis}
+                onChange={val => onUpdateDisplayPrefs({ ...prefs, showDashboardKpis: val })}
+                label="Dashboard KPI Metrics"
+                description="Today's sales, total invoiced, collections, and balance due summary cards."
+                icon={<BarChart3 className="w-5 h-5" />}
+              />
+
+              <ToggleSwitch
+                enabled={prefs.showDashboardRecentInvoices}
+                onChange={val => onUpdateDisplayPrefs({ ...prefs, showDashboardRecentInvoices: val })}
+                label="Dashboard Recent Bills List"
+                description="The recent sales and invoices list displayed on the dashboard."
+                icon={<ListFilter className="w-5 h-5" />}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tax Guardrail Notice from PRD */}
+      {(activeTab === 'business' || activeTab === 'all') && (
+        <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 flex items-start gap-3.5 text-xs text-amber-900 shadow-2xs">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-amber-950">Statutory Tax Compliance Notice</p>
+            <p className="text-amber-800/90 mt-0.5 leading-relaxed">
+              GST rates, HSN codes, and invoice structures are configurable. Before production billing, verify your GSTIN registration status, saree HSN codes, and applicable tax rates with your chartered accountant.
+            </p>
+          </div>
+        </div>
+      )}
 
       {savedSuccess && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-900 flex items-center space-x-2 text-xs font-bold shadow-2xs animate-in fade-in">
@@ -122,7 +380,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
       )}
 
       {/* Main Settings Form */}
-      <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6 text-xs">
+      {(activeTab === 'business' || activeTab === 'all') && (
+        <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6 text-xs">
         {/* Section 1: Business Identity */}
         <div>
           <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider font-serif border-b pb-2 mb-4">
@@ -347,61 +606,64 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onRefresh 
           </button>
         </div>
       </form>
+      )}
 
-      {/* Section 5: Data Backup & Restore */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm text-xs space-y-4">
-        <div className="flex items-center space-x-2 border-b border-slate-100 pb-3 text-slate-900 font-bold text-sm uppercase tracking-wider">
-          <ShieldCheck className="w-5 h-5 text-emerald-600" />
-          <span>Local Store Data Backup & Restore</span>
-        </div>
-
-        <p className="text-slate-600 leading-relaxed font-medium">
-          Invoices and client records are stored safely in local IndexedDB. You can export regular JSON snapshots or restore previous backups onto another workstation.
-        </p>
-
-        {backupStatus && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl font-semibold">
-            {backupStatus}
+      {/* Section: Data Backup & Restore */}
+      {(activeTab === 'backup' || activeTab === 'all') && (
+        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm text-xs space-y-4">
+          <div className="flex items-center space-x-2 border-b border-slate-100 pb-3 text-slate-900 font-bold text-sm uppercase tracking-wider">
+            <ShieldCheck className="w-5 h-5 text-emerald-600" />
+            <span>Local Store Data Backup & Restore</span>
           </div>
-        )}
 
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <button
-            type="button"
-            onClick={handleExportBackup}
-            className="flex items-center space-x-2 px-5 py-2.5 bg-brand-850 hover:bg-brand-950 text-white rounded-xl font-bold shadow-sm transition cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-gold" />
-            <span>Export Full JSON Backup</span>
-          </button>
+          <p className="text-slate-600 leading-relaxed font-medium">
+            Invoices and client records are stored safely in local IndexedDB. You can export regular JSON snapshots or restore previous backups onto another workstation.
+          </p>
 
-          <label className="flex items-center space-x-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl font-bold border border-slate-200 cursor-pointer transition">
-            <Upload className="w-4 h-4 text-slate-500" />
-            <span>Restore Backup File</span>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleFileRestore}
-              className="hidden"
-            />
-          </label>
+          {backupStatus && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl font-semibold">
+              {backupStatus}
+            </div>
+          )}
 
-          <button
-            type="button"
-            onClick={async () => {
-              if (confirm('Clear all local IndexedDB cache? All products and sales will be read directly from live Supabase.')) {
-                await clearLocalDummyData();
-                setBackupStatus('All local IndexedDB dummy stores wiped successfully. Using live Supabase data.');
-                onRefresh();
-              }
-            }}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-bold border border-rose-200 transition cursor-pointer active-press"
-          >
-            <Trash2 className="w-4 h-4 text-rose-600" />
-            <span>Wipe Local Cache Data</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleExportBackup}
+              className="flex items-center space-x-2 px-5 py-2.5 bg-brand-850 hover:bg-brand-950 text-white rounded-xl font-bold shadow-sm transition cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-gold" />
+              <span>Export Full JSON Backup</span>
+            </button>
+
+            <label className="flex items-center space-x-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl font-bold border border-slate-200 cursor-pointer transition">
+              <Upload className="w-4 h-4 text-slate-500" />
+              <span>Restore Backup File</span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileRestore}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={async () => {
+                if (confirm('Clear all local IndexedDB cache? All products and sales will be read directly from live Supabase.')) {
+                  await clearLocalDummyData();
+                  setBackupStatus('All local IndexedDB dummy stores wiped successfully. Using live Supabase data.');
+                  onRefresh();
+                }
+              }}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-bold border border-rose-200 transition cursor-pointer active-press"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>Wipe Local Cache Data</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

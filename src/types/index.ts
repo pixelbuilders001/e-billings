@@ -7,6 +7,15 @@ export type InvoiceStatus = 'draft' | 'finalized' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid';
 export type PaymentMethod = 'Cash' | 'UPI' | 'Card' | 'Bank Transfer' | 'Other';
 
+export interface LocalDisplayPreferences {
+  showDashboard: boolean;
+  showDashboardKpis: boolean;
+  showDashboardRecentInvoices: boolean;
+  showInvoicesTab: boolean;
+  showCatalogueTab: boolean;
+  showCustomersTab: boolean;
+}
+
 export interface StoreSettings {
   id: string;
   tradeName: string;

@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { StoreSettings, Product, Customer, Invoice } from '../types';
+import { StoreSettings, Product, Customer, Invoice, LocalDisplayPreferences } from '../types';
 import { INITIAL_STORE_SETTINGS } from './seedData';
 import { 
   fetchStoreSettingsFromSupabase, 
@@ -305,5 +305,63 @@ export async function restoreDatabaseBackup(jsonString: string): Promise<{ succe
       success: false,
       message: `Restore failed: ${err.message || 'Unknown error'}`
     };
+  }
+}
+
+// ================= LOCAL DISPLAY & VISIBILITY PREFERENCES (INDEXEDDB) =================
+export const DEFAULT_DISPLAY_PREFERENCES: LocalDisplayPreferences = {
+  showDashboard: true,
+  showDashboardKpis: true,
+  showDashboardRecentInvoices: true,
+  showInvoicesTab: true,
+  showCatalogueTab: true,
+  showCustomersTab: true
+};
+
+const PREFERENCES_KEY = 'b2p_local_display_preferences';
+
+export function getInitialDisplayPreferences(): LocalDisplayPreferences {
+  try {
+    const raw = localStorage.getItem(PREFERENCES_KEY);
+    if (raw) {
+      return { ...DEFAULT_DISPLAY_PREFERENCES, ...JSON.parse(raw) };
+    }
+  } catch (e) {
+    console.warn('Error reading display preferences from localStorage:', e);
+  }
+  return DEFAULT_DISPLAY_PREFERENCES;
+}
+
+export async function getLocalDisplayPreferences(): Promise<LocalDisplayPreferences> {
+  // 1. Try IndexedDB 'settings' store
+  try {
+    const db = await getDB();
+    const stored = await db.get('settings', 'local-display-preferences');
+    if (stored) {
+      const { id: _, ...prefs } = stored as any;
+      return { ...DEFAULT_DISPLAY_PREFERENCES, ...prefs };
+    }
+  } catch (err) {
+    console.warn('Could not read display preferences from IndexedDB:', err);
+  }
+
+  // 2. Fallback to localStorage
+  return getInitialDisplayPreferences();
+}
+
+export async function saveLocalDisplayPreferences(prefs: LocalDisplayPreferences): Promise<void> {
+  // Instant localStorage cache for synchronous render
+  try {
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    console.warn('LocalStorage save failed:', e);
+  }
+
+  // Persistent IndexedDB save
+  try {
+    const db = await getDB();
+    await db.put('settings', { id: 'local-display-preferences', ...prefs } as any);
+  } catch (err) {
+    console.warn('IndexedDB save display preferences failed:', err);
   }
 }

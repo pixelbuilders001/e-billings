@@ -496,6 +496,7 @@ export async function recordSupabaseAddonSale(addonSale: {
   total_amount: number;
   customer_name?: string;
   payment_method?: string;
+  notes?: string;
 }): Promise<void> {
   try {
     const cleanId = addonSale.addon_id.replace(/^addon-/, '');
@@ -515,7 +516,7 @@ export async function recordSupabaseAddonSale(addonSale: {
         .eq('id', cleanId);
     }
 
-    // 2. Record in public.addon_sales ledger
+    // 2. Record in public.addon_sales ledger with invoice reference
     await supabase
       .from('addon_sales')
       .insert([{
@@ -526,10 +527,29 @@ export async function recordSupabaseAddonSale(addonSale: {
         unit_price: addonSale.unit_price,
         total_amount: addonSale.total_amount,
         customer_name: addonSale.customer_name || 'Walk-in Customer',
-        payment_method: addonSale.payment_method || 'Cash'
+        payment_method: addonSale.payment_method || 'Cash',
+        notes: addonSale.notes || null
       }]);
   } catch (err) {
     console.warn('Error recording addon sale in Supabase:', err);
+  }
+}
+
+export async function fetchSupabaseAddonSales(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('addon_sales')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase fetchAddonSales notice:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.warn('Failed to fetch addon_sales from Supabase:', err);
+    return [];
   }
 }
 
@@ -606,7 +626,8 @@ export async function createSupabaseSale(input: CreateSaleInput): Promise<{ data
  */
 export function convertSupabaseSaleToInvoice(
   sale: SupabaseSale,
-  settings: any
+  settings: any,
+  addonSales?: any[]
 ): any {
   const customerName = sale.customers?.name || 'Walk-in Retail Customer';
   const customerMobile = sale.customers?.mobile || '9999999999';
@@ -768,6 +789,59 @@ export function convertSupabaseSaleToInvoice(
     igstAmount: igstAmount,
     lineTotal: totalAmount
   }];
+
+  // Attach matching addon items (blouse pieces, aster/astar, petticoats, fall & pico)
+  if (addonSales && addonSales.length > 0) {
+    const matchingAddons = addonSales.filter(a => {
+      if (a.notes && sale.invoice_number && a.notes.trim() === sale.invoice_number.trim()) {
+        return true;
+      }
+      if (a.customer_name && sale.customers?.name) {
+        const isSameCustomer = a.customer_name.trim().toLowerCase() === sale.customers.name.trim().toLowerCase();
+        const saleTime = new Date(sale.created_at).getTime();
+        const addonTime = new Date(a.created_at).getTime();
+        if (isSameCustomer && Math.abs(addonTime - saleTime) < 600000) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    matchingAddons.forEach((addon, aIdx) => {
+      if (items.some(it => it.id === addon.id || it.description === addon.addon_name)) return;
+      const lineTotal = Number(addon.total_amount) || (Number(addon.unit_price) * (addon.quantity || 1));
+      const lineGst = isGstApplied ? (gstRate || 5) : 0;
+      const lineTaxable = lineGst > 0 ? parseFloat((lineTotal / (1 + lineGst / 100)).toFixed(2)) : lineTotal;
+      const lineTax = parseFloat((lineTotal - lineTaxable).toFixed(2));
+      const lineCgst = isInterState ? 0 : parseFloat((lineTax / 2).toFixed(2));
+      const lineSgst = isInterState ? 0 : parseFloat((lineTax / 2).toFixed(2));
+      const lineIgst = isInterState ? lineTax : 0;
+      const catLower = (addon.category || '').toLowerCase();
+      const hsn = catLower.includes('blouse') ? '6211' : catLower.includes('petticoat') ? '6208' : '5208';
+
+      items.push({
+        id: addon.id || `addon-${sale.id}-${aIdx}`,
+        productId: `addon-${addon.addon_id || aIdx}`,
+        description: addon.addon_name,
+        hsnCode: hsn,
+        qty: addon.quantity || 1,
+        unit: 'Nos',
+        unitPrice: Number(addon.unit_price) || lineTotal,
+        discountType: 'percentage' as const,
+        discountValue: 0,
+        grossLineValue: lineTotal,
+        itemDiscountAmount: 0,
+        allocatedBillDiscountAmount: 0,
+        netDiscountAmount: 0,
+        taxableValue: lineTaxable,
+        gstRate: lineGst,
+        cgstAmount: lineCgst,
+        sgstAmount: lineSgst,
+        igstAmount: lineIgst,
+        lineTotal
+      });
+    });
+  }
 
   const paidTotal = sale.amount_paid !== null && sale.amount_paid !== undefined
     ? Number(sale.amount_paid)

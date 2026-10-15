@@ -29,6 +29,7 @@ import { useAuth } from './store/useAuthStore';
 import { 
   fetchSupabaseCustomers, 
   fetchSupabaseSales, 
+  fetchSupabaseAddonSales,
   convertSupabaseSaleToInvoice,
   cleanupNonSareeInventoryItems
 } from './db/supabaseClient';
@@ -58,13 +59,14 @@ export function App() {
     try {
       await initDatabase();
       cleanupNonSareeInventoryItems();
-      const [s, p, localCusts, localInvs, supaCusts, supaSales, prefs] = await Promise.all([
+      const [s, p, localCusts, localInvs, supaCusts, supaSales, supaAddonSales, prefs] = await Promise.all([
         getStoreSettings(),
         getAllProducts(),
         getAllCustomers(),
         getAllInvoices(),
         fetchSupabaseCustomers(),
         fetchSupabaseSales(),
+        fetchSupabaseAddonSales(),
         getLocalDisplayPreferences()
       ]);
 
@@ -98,15 +100,33 @@ export function App() {
       mappedSupaCusts.forEach(c => customerMap.set(c.phone || c.id, c));
       setCustomers(Array.from(customerMap.values()));
 
-      // Merge invoices: Map Supabase sales to Invoice type
+      // Merge invoices: Map Supabase sales to Invoice type with matching addons
       const mappedSupaInvoices: Invoice[] = supaSales.map(sale => 
-        convertSupabaseSaleToInvoice(sale, s)
+        convertSupabaseSaleToInvoice(sale, s, supaAddonSales)
       );
 
-      // Combine invoices avoiding duplicate invoice numbers or IDs
+      // Combine invoices: prioritize complete local item lists (including addons like blouse pieces, aster, fall & pico)
       const invoiceMap = new Map<string, Invoice>();
       localInvs.forEach(inv => invoiceMap.set(inv.invoiceNumber || inv.id, inv));
-      mappedSupaInvoices.forEach(inv => invoiceMap.set(inv.invoiceNumber || inv.id, inv));
+      mappedSupaInvoices.forEach(supaInv => {
+        const key = supaInv.invoiceNumber || supaInv.id;
+        const localInv = invoiceMap.get(key);
+        if (localInv && localInv.items && localInv.items.length > supaInv.items.length) {
+          // Preserve local invoice items which include add-ons (blouse pieces, aster/astar, fall & pico)
+          invoiceMap.set(key, {
+            ...supaInv,
+            items: localInv.items,
+            rateBreakdown: localInv.rateBreakdown?.length ? localInv.rateBreakdown : supaInv.rateBreakdown,
+            subtotal: localInv.subtotal,
+            grandTotal: localInv.grandTotal,
+            discountTotal: localInv.discountTotal,
+            taxableTotal: localInv.taxableTotal,
+            amountInWords: localInv.amountInWords || supaInv.amountInWords
+          });
+        } else {
+          invoiceMap.set(key, supaInv);
+        }
+      });
 
       const mergedInvoices = Array.from(invoiceMap.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

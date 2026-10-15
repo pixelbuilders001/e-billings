@@ -380,11 +380,16 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   // Add Add-on Item (Blouse, Petticoat, Fall & Pico, etc.)
   const handleSelectAddon = (addon: SupabaseAddon) => {
     const emptyIndex = items.findIndex(it => !it.description && it.unitPrice === 0);
-    const hsn = addon.category === 'Blouse' ? '6211' : addon.category === 'Petticoat' ? '6208' : '5208';
+    const catLower = (addon.category || '').toLowerCase();
+    const hsn = catLower === 'blouse' ? '6211' : catLower === 'petticoat' ? '6208' : '5208';
+    const cleanName = addon.name.toLowerCase().includes(catLower)
+      ? addon.name
+      : `${addon.name} (${addon.category})`;
+
     const newItem: WorkingItem = {
       id: 'row-' + Date.now(),
       productId: `addon-${addon.id}`,
-      description: `${addon.name} (${addon.category})`,
+      description: cleanName,
       hsnCode: hsn,
       qty: 1,
       unit: 'Nos',
@@ -499,11 +504,15 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     );
   }).slice(0, 8);
 
-  // Filter matching add-ons from public.addons
+  // Filter matching add-ons from public.addons (support aster/astar, blouse, petticoats)
   const filteredAddons = availableAddons.filter(a => {
     if (!searchQuery.trim()) return false;
-    const q = searchQuery.toLowerCase();
-    return a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q);
+    const q = searchQuery.toLowerCase().trim();
+    const name = a.name.toLowerCase();
+    const cat = a.category.toLowerCase();
+    const normQ = q.replace(/aster/g, 'astar');
+    const normName = name.replace(/aster/g, 'astar');
+    return normName.includes(normQ) || name.includes(q) || cat.includes(q) || normQ.includes(normName);
   }).slice(0, 8);
 
   // Realtime Supabase broadcast subscription for Remote Scanner (Phone)
@@ -808,7 +817,8 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 unit_price: it.unitPrice,
                 total_amount: it.lineTotal,
                 customer_name: customerName,
-                payment_method: paymentMethod
+                payment_method: paymentMethod,
+                notes: invNumber
               });
             } else {
               // Saree item: resolve existing ID from public.inventory
@@ -991,6 +1001,27 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   <span className={`w-2 h-2 rounded-full ${isRemoteConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gold'}`} />
                 </button>
               </div>
+
+              {/* Quick Add-ons Bar for instant 1-click blouse pieces, aster/astar, and accessories */}
+              {availableAddons.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-purple-600" />
+                    <span>Quick Add-ons:</span>
+                  </span>
+                  {availableAddons.slice(0, 6).map(addon => (
+                    <button
+                      key={addon.id}
+                      type="button"
+                      onClick={() => handleSelectAddon(addon)}
+                      className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active-press shadow-2xs"
+                    >
+                      <span>+ {addon.name}</span>
+                      <span className="font-mono text-[10px] text-purple-700 font-bold">₹{addon.selling_price}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Dropdown Results (Supabase + Local) */}

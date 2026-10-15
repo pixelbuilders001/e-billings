@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { numberToWordsIndian } from '../engine/numberToWords';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vzqlsawxvvyvsstyzzff.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_6chwvgIpbfCpeEZrkS9VYg_IO__zSpY';
@@ -817,7 +818,7 @@ export function convertSupabaseSaleToInvoice(
     roundOff: 0,
     grandTotal: totalAmount,
     rateBreakdown,
-    amountInWords: '',
+    amountInWords: numberToWordsIndian(totalAmount),
     payments: paidTotal > 0 ? [{
       id: `pay-${sale.id}`,
       date: invoiceDate,

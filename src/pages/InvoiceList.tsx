@@ -44,50 +44,55 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Invoice History & Billing Ledger
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Search, filter, print, and duplicate customer tax invoices & retail bills.
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-5 rounded-2xl border border-gold/25 shadow-card">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-950 to-brand-900 text-gold flex items-center justify-center border border-gold/40 shadow-xs">
+            <Filter className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-serif">
+              Invoice Ledger & History
+            </h1>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Comprehensive registry of customer bills, tax summaries, and cloud sync status.
+            </p>
+          </div>
         </div>
 
         <button
           onClick={onNewInvoice}
-          className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer"
+          className="flex items-center space-x-2 px-5 py-3 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-gold text-brand-950 rounded-xl text-xs font-black shadow-gold-glow hover:shadow-lg transition cursor-pointer active-press border border-yellow-200/50"
         >
-          <Plus className="w-4 h-4 text-gold" />
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Create New Bill</span>
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center gap-4 text-xs">
+      <div className="luxury-card p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-card flex flex-wrap items-center gap-4 text-xs">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by invoice number, customer name, phone number..."
+            placeholder="Search invoice number, customer name, or phone..."
             value={search}
             onChange={e => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-700 focus:bg-white text-slate-900 transition"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold focus:bg-white text-slate-900 font-medium transition"
           />
         </div>
 
         <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <span className="text-slate-600 font-bold">Status:</span>
+          <Filter className="w-4 h-4 text-brand-900" />
+          <span className="text-slate-700 font-bold">Status:</span>
           <select
             value={statusFilter}
             onChange={e => {
               setStatusFilter(e.target.value as any);
               setPage(1);
             }}
-            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-700"
+            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold"
           >
             <option value="all">All Statuses</option>
             <option value="finalized">Finalized</option>
@@ -97,14 +102,14 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="text-slate-600 font-bold">Payment:</span>
+          <span className="text-slate-700 font-bold">Payment:</span>
           <select
             value={paymentFilter}
             onChange={e => {
               setPaymentFilter(e.target.value as any);
               setPage(1);
             }}
-            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-700"
+            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold"
           >
             <option value="all">All Payments</option>
             <option value="paid">Paid</option>
@@ -114,24 +119,24 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="text-slate-600 font-bold">Per Page:</span>
+          <span className="text-slate-700 font-bold">Show:</span>
           <select
             value={pageSize}
             onChange={e => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-700"
+            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold"
           >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
+            <option value={10}>10 / page</option>
+            <option value={25}>25 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
           </select>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="luxury-card rounded-2xl border border-slate-200/80 shadow-card overflow-hidden">
         {totalInvoices === 0 ? (
           <div className="p-16 text-center text-slate-400 text-xs font-medium">
             No invoices found matching criteria.

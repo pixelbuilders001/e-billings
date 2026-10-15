@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Customer } from '../types';
-import { Plus, Search, Edit2, Trash2, X, MapPin, Phone, Award } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Phone, Award, Users } from 'lucide-react';
 import { INDIAN_STATES } from '../engine/indianStates';
 import { saveCustomer, deleteCustomer } from '../db';
 import { saveSupabaseCustomer, deleteSupabaseCustomer } from '../db/supabaseClient';
@@ -137,22 +137,33 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Customer Directory & CRM
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Manage repeat clients, contact records, loyalty member tiers, and billing addresses.
-          </p>
+      {/* Luxury CRM Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-5 rounded-2xl border border-gold/25 shadow-card">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-950 to-brand-900 text-gold flex items-center justify-center border border-gold/40 shadow-xs">
+            <Users className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-serif">
+                Client Relationship Ledger
+              </h1>
+              <span className="text-[10px] bg-gold/15 text-gold border border-gold/30 px-2 py-0.5 rounded-full font-bold">
+                VIP CRM
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Repeat clientele, contact numbers, and loyalty tier status.
+            </p>
+          </div>
         </div>
 
         <button
           onClick={handleStartCreate}
-          className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer"
+          className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-gold text-brand-950 rounded-xl text-xs font-black shadow-gold-glow hover:shadow-lg transition cursor-pointer active-press border border-yellow-200/50"
         >
-          <Plus className="w-4 h-4 text-gold" />
-          <span>Add New Customer</span>
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>Add New Client</span>
         </button>
       </div>
 
@@ -277,21 +288,21 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
       )}
 
       {/* Search Input */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center text-xs">
+      <div className="luxury-card p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-card flex items-center text-xs">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by customer name, phone number, or firm name..."
+            placeholder="Search by client name, mobile phone number, or firm name..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-700"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold focus:bg-white text-slate-900 font-medium transition"
           />
         </div>
       </div>
 
       {/* Customers List */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="luxury-card rounded-2xl border border-slate-200/80 shadow-card overflow-hidden">
         {/* Mobile View for Customers */}
         <div className="block md:hidden divide-y divide-slate-100">
           {filteredCustomers.map(cust => (
@@ -342,10 +353,6 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
                   <Phone className="w-3.5 h-3.5 text-brand-700" />
                   <span>{cust.phone}</span>
                 </a>
-                <span className="text-slate-500 flex items-center gap-1 text-[11px]">
-                  <MapPin className="w-3 h-3 text-slate-400" />
-                  <span>{cust.state}</span>
-                </span>
               </div>
             </div>
           ))}
@@ -358,7 +365,6 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
               <tr className="bg-slate-50/80 text-slate-600 border-b border-slate-200">
                 <th className="py-3.5 px-4 font-bold">Customer Details</th>
                 <th className="py-3.5 px-4 font-bold">Contact</th>
-                <th className="py-3.5 px-4 font-bold">Location</th>
                 <th className="py-3.5 px-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
@@ -397,13 +403,6 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
                       {cust.phone}
                     </p>
                     {cust.email && <p className="text-[11px] text-gray-500">{cust.email}</p>}
-                  </td>
-                  <td className="py-3 px-4">
-                    <p className="text-gray-800 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-gray-400" />
-                      {cust.state} ({cust.stateCode})
-                    </p>
-                    <p className="text-[11px] text-gray-500">{cust.billingAddress}</p>
                   </td>
 
                   <td className="py-3 px-4 text-right">

@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Package
 } from 'lucide-react';
 import { saveProduct, deleteProduct } from '../db';
 import { 
@@ -280,63 +281,76 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            Inventory & Product Catalogue
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Connected to live Supabase cloud database with {totalCount.toLocaleString()} total items recorded.
-          </p>
+      {/* Luxury Catalogue Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-5 rounded-2xl border border-gold/25 shadow-card">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-950 to-brand-900 text-gold flex items-center justify-center border border-gold/40 shadow-xs">
+            <Package className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-serif">
+                Saree Inventory & Catalogue
+              </h1>
+              <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 rounded-full font-bold">
+                {totalCount.toLocaleString()} SKUs Active
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Live cloud sync with Supabase public.inventory, weave classifications, and silk mark tags.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => loadSupabasePage(currentPage, pageSize, search)}
-            title="Refresh current page"
-            className="p-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs shadow-2xs transition cursor-pointer"
+            title="Refresh inventory"
+            className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs shadow-2xs transition cursor-pointer active-press"
           >
-            <RefreshCw className={`w-4 h-4 ${loadingSupabase ? 'animate-spin text-brand-700' : 'text-slate-500'}`} />
+            <RefreshCw className={`w-4 h-4 ${loadingSupabase ? 'animate-spin text-brand-700' : 'text-slate-600'}`} />
           </button>
+          
           <button
             onClick={handleExportFullCSV}
             disabled={isExportingAll}
-            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition disabled:opacity-50 cursor-pointer"
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition disabled:opacity-50 cursor-pointer active-press"
           >
-            {isExportingAll ? <Loader2 className="w-4 h-4 animate-spin text-brand-700" /> : <Download className="w-4 h-4 text-slate-500" />}
-            <span>{isExportingAll ? 'Exporting All Records...' : 'Export Complete CSV'}</span>
+            {isExportingAll ? <Loader2 className="w-4 h-4 animate-spin text-brand-700" /> : <Download className="w-4 h-4 text-slate-600" />}
+            <span>{isExportingAll ? 'Exporting...' : 'Export CSV'}</span>
           </button>
+
           <button
             onClick={handleStartCreate}
-            className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-gold text-brand-950 rounded-xl text-xs font-black shadow-gold-glow hover:shadow-lg transition cursor-pointer active-press border border-yellow-200/50"
           >
-            <Plus className="w-4 h-4 text-gold" />
-            <span>Add Product</span>
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Add Saree SKU</span>
           </button>
         </div>
       </div>
 
       {supabaseSyncMessage && (
-        <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-lg text-xs font-semibold">
-          {supabaseSyncMessage}
+        <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs animate-fade-in">
+          <Cloud className="w-4 h-4 text-emerald-600" />
+          <span>{supabaseSyncMessage}</span>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 space-x-6 text-xs font-semibold">
+      {/* Segmented Luxury Tabs */}
+      <div className="flex border-b border-slate-200 space-x-6 text-xs font-bold">
         <button
           onClick={() => setActiveTab('supabase')}
           className={`pb-3 flex items-center space-x-2 transition cursor-pointer relative ${
             activeTab === 'supabase'
-              ? 'text-brand-900 font-extrabold'
+              ? 'text-brand-950 font-black'
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
           <Cloud className="w-4 h-4 text-emerald-600" />
           <span>Cloud Database ({totalCount.toLocaleString()} items)</span>
           {activeTab === 'supabase' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-800 rounded-full" />
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold rounded-full" />
           )}
         </button>
 
@@ -344,14 +358,14 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
           onClick={() => setActiveTab('local')}
           className={`pb-3 flex items-center space-x-2 transition cursor-pointer relative ${
             activeTab === 'local'
-              ? 'text-brand-900 font-extrabold'
+              ? 'text-brand-950 font-black'
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <Database className="w-4 h-4 text-brand-700" />
+          <Database className="w-4 h-4 text-brand-750" />
           <span>Local Cache ({products.length} items)</span>
           {activeTab === 'local' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-800 rounded-full" />
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold rounded-full" />
           )}
         </button>
       </div>

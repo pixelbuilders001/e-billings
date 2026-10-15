@@ -159,16 +159,19 @@ export function App() {
 
   if (!isInitialized || loading || !settings) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="flex flex-col items-center space-y-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold to-amber-300 flex items-center justify-center text-brand-950 font-black text-2xl shadow-2xl ring-4 ring-gold/20 animate-pulse">
-            B2P
+      <div className="min-h-screen bg-[#1E0209] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="absolute -top-32 -right-32 w-80 h-80 bg-gold/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-brand-700/25 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="flex flex-col items-center space-y-5 text-center relative z-10">
+          <div className="w-18 h-18 rounded-2xl bg-gradient-to-br from-gold via-amber-400 to-yellow-300 flex items-center justify-center text-brand-950 font-black text-2xl shadow-gold-glow ring-4 ring-gold/30 animate-pulse">
+            <span className="font-serif font-black text-3xl">B2P</span>
           </div>
-          <div className="space-y-1.5">
-            <h2 className="text-xl font-bold text-white tracking-tight">BillToPrint</h2>
-            <div className="flex items-center justify-center space-x-2 text-amber-200/80 text-xs font-medium">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-gold" />
-              <span>Synchronizing Cloud POS & Invoicing Records...</span>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white tracking-tight font-serif">BillToPrint</h2>
+            <div className="flex items-center justify-center space-x-2 text-amber-200/90 text-xs font-semibold">
+              <Loader2 className="w-4 h-4 animate-spin text-gold" />
+              <span>Synchronizing Boutique POS & Inventory Records...</span>
             </div>
           </div>
         </div>
@@ -182,7 +185,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFBF7] text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FAF8F5] text-slate-900 flex flex-col font-sans">
       {/* Top Navbar */}
       <Navbar
         currentTab={currentTab}

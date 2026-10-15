@@ -3,6 +3,7 @@ import { Invoice } from '../types';
 import { Printer, Download, Share2, Copy, Check, ArrowLeft } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { numberToWordsIndian } from '../engine/numberToWords';
 
 interface InvoiceDocumentProps {
   invoice: Invoice;
@@ -17,6 +18,10 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
   const isTaxInvoice = invoice.isRegisteredTaxInvoice;
   const seller = invoice.sellerSnapshot;
   const customer = invoice.customerSnapshot;
+
+  const amountInWords = (invoice.amountInWords && invoice.amountInWords.trim().length > 0)
+    ? invoice.amountInWords
+    : numberToWordsIndian(invoice.grandTotal || 0);
 
   const handlePrint = () => {
     window.print();
@@ -91,25 +96,27 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6">
       {/* Top Action Toolbar (Hidden in Print) */}
-      <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-ivory-border shadow-sm">
-        <div className="flex items-center space-x-3">
+      <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-4 bg-white/95 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-gold/30 shadow-luxury">
+        <div className="flex items-center space-x-3.5">
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition cursor-pointer active-press border border-slate-200"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </button>
           )}
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-gray-500">Invoice</span>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 font-mono flex items-center gap-2">
-              {invoice.invoiceNumber}
+            <span className="text-[10px] uppercase tracking-widest font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/70">
+              Tax Document
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 font-mono flex items-center gap-2 mt-0.5">
+              <span>{invoice.invoiceNumber}</span>
               <button
                 onClick={handleCopyNumber}
                 title="Copy Invoice Number"
-                className="text-gray-400 hover:text-brand-700"
+                className="text-slate-400 hover:text-brand-900 p-1 rounded-md transition cursor-pointer"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               </button>
@@ -117,29 +124,29 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={handlePrint}
-            className="flex items-center space-x-1.5 px-4 py-2 text-sm font-semibold text-brand-900 bg-gold/20 hover:bg-gold/30 border border-gold/40 rounded-lg transition"
+            className="flex items-center space-x-2 px-5 py-2.5 text-xs font-black text-brand-950 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-gold rounded-xl shadow-gold-glow hover:shadow-lg transition cursor-pointer active-press border border-yellow-200/60"
           >
-            <Printer className="w-4 h-4 text-brand-800" />
+            <Printer className="w-4 h-4 stroke-[2.5]" />
             <span>Print Invoice</span>
           </button>
 
           <button
             onClick={handleDownloadPDF}
             disabled={downloading}
-            className="flex items-center space-x-1.5 px-4 py-2 text-sm font-semibold text-white bg-brand-800 hover:bg-brand-900 rounded-lg shadow-sm transition disabled:opacity-50"
+            className="flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-brand-950 to-brand-900 hover:from-black hover:to-brand-950 rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer active-press border border-gold/30"
           >
-            <Download className="w-4 h-4" />
-            <span>{downloading ? 'Preparing PDF...' : 'Download PDF'}</span>
+            <Download className="w-4 h-4 text-gold" />
+            <span>{downloading ? 'Generating PDF...' : 'Download PDF'}</span>
           </button>
 
           <button
             onClick={handleShare}
-            className="flex items-center space-x-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer active-press border border-slate-200"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-4 h-4 text-slate-600" />
             <span className="hidden sm:inline">Share</span>
           </button>
         </div>
@@ -384,7 +391,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
                 Total Amount in Words:
               </span>
               <p className="font-serif font-bold text-gray-900 mt-0.5 text-xs italic">
-                {invoice.amountInWords}
+                {amountInWords}
               </p>
             </div>
           </div>
@@ -441,12 +448,35 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
               </div>
             )}
 
-            <div className="flex justify-between text-base font-bold text-brand-900 pt-2 border-t-2 border-brand-800">
-              <span>Grand Total:</span>
-              <span className="font-mono text-lg text-brand-900">
-                ₹{invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
+            <div className="pt-2 border-t-2 border-brand-800">
+              <div className="flex justify-between text-base font-bold text-brand-900">
+                <span>Grand Total:</span>
+                <span className="font-mono text-lg text-brand-900">
+                  ₹{invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <p className="text-right text-[11px] font-serif font-medium text-brand-950 italic mt-1 leading-snug">
+                ({amountInWords})
+              </p>
             </div>
+          </div>
+        </div>
+
+        {/* Full-width Amount in Words Banner for complete PDF & Print visibility */}
+        <div className="mb-6 p-3.5 bg-brand-50/80 border border-brand-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div>
+            <span className="font-bold text-brand-900 uppercase tracking-wider text-[10px] block">
+              Total Amount in Words (INR):
+            </span>
+            <p className="font-serif font-bold text-gray-950 text-sm italic mt-0.5">
+              {amountInWords}
+            </p>
+          </div>
+          <div className="text-left sm:text-right sm:border-l sm:border-brand-200 sm:pl-4 whitespace-nowrap">
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider block">Grand Total</span>
+            <span className="font-mono font-bold text-brand-900 text-base">
+              ₹{invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
           </div>
         </div>
 

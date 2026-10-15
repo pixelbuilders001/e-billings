@@ -183,21 +183,26 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              System & Business Settings
-            </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <Cloud className="w-3 h-3 text-emerald-600" />
-              Supabase Cloud Synced
-            </span>
+      {/* Luxury Settings Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/80 backdrop-blur-xl p-5 rounded-2xl border border-gold/25 shadow-card">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-950 to-brand-900 text-gold flex items-center justify-center border border-gold/40 shadow-xs">
+            <Sliders className="w-5 h-5 stroke-[2.2]" />
           </div>
-          <p className="text-xs text-slate-500 font-medium mt-1">
-            Configure business details, GST compliance, invoice numbering prefixes, and pricing policies synced across all devices.
-          </p>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-serif">
+                Boutique Console & Settings
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <Cloud className="w-3 h-3 text-emerald-600" />
+                Cloud Synced
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Store profiles, GST rules, invoice prefixes, feature toggles, and offline backups.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -206,9 +211,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('visibility')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs active-press ${
             activeTab === 'visibility'
-              ? 'bg-brand-900 text-gold ring-2 ring-gold/40 shadow-md'
+              ? 'bg-gradient-to-r from-brand-950 to-brand-900 text-gold ring-2 ring-gold/40 shadow-md border border-gold/30'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
           }`}
         >
@@ -220,9 +225,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('business')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs active-press ${
             activeTab === 'business'
-              ? 'bg-brand-900 text-gold ring-2 ring-gold/40 shadow-md'
+              ? 'bg-gradient-to-r from-brand-950 to-brand-900 text-gold ring-2 ring-gold/40 shadow-md border border-gold/30'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
           }`}
         >
@@ -234,9 +239,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('backup')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-xs active-press ${
             activeTab === 'backup'
-              ? 'bg-brand-900 text-gold ring-2 ring-gold/40 shadow-md'
+              ? 'bg-gradient-to-r from-brand-950 to-brand-900 text-gold ring-2 ring-gold/40 shadow-md border border-gold/30'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
           }`}
         >
@@ -247,7 +252,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('all')}
-          className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+          className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer active-press ${
             activeTab === 'all'
               ? 'bg-slate-900 text-white'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'

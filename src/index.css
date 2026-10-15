@@ -8,9 +8,9 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background-color: #F8FAFC;
-    color: #0F172A;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #FAF8F5;
+    color: #1A1412;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-print-color-adjust: exact;
@@ -19,13 +19,59 @@
   }
 }
 
+/* Tabular Numbers for Currency and Accounting Accuracy */
+.tabular-nums {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Luxury Editorial & Metallic Shimmer */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #FFE082 0%, #D4AF37 50%, #AA820A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 50%, #C99700 100%);
+}
+
+.luxury-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(228, 207, 176, 0.45);
+  box-shadow: 0 4px 20px -2px rgba(61, 0, 16, 0.04);
+}
+
+.luxury-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.luxury-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -4px rgba(61, 0, 16, 0.08);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+/* Glassmorphism elements */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.glass-dark {
+  background: rgba(34, 0, 8, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+}
+
 /* Native App-like active feedback */
 .active-press {
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+  transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.12s ease;
 }
 .active-press:active {
-  transform: scale(0.96);
-  opacity: 0.88;
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 /* Bottom Navigation Bar Safe Area */

@@ -33,42 +33,47 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#1E0209] flex items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Decorative High-End Ambient Backdrops */}
-      <div className="absolute -top-40 -right-40 w-[32rem] h-[32rem] bg-brand-700/25 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-[32rem] h-[32rem] bg-amber-500/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-[36rem] h-[36rem] bg-gradient-to-br from-brand-700/30 to-gold/15 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-[36rem] h-[36rem] bg-gradient-to-tr from-amber-600/20 to-brand-900/40 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#D4AF37_1px,transparent_1px)] [background-size:32px_32px] opacity-10 pointer-events-none" />
 
-      <div className="w-full max-w-md bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden z-10 transition-all">
-        {/* Header Banner */}
-        <div className="bg-gradient-to-br from-brand-900 via-brand-850 to-brand-800 px-8 py-10 text-center relative overflow-hidden border-b border-gold/20">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-gold to-amber-300 flex items-center justify-center text-brand-950 font-black text-2xl shadow-xl ring-4 ring-gold/20 mb-3.5">
-            B2P
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-2xl border border-gold/30 rounded-3xl shadow-luxury-lg overflow-hidden z-10 transition-all">
+        {/* Luxury Header Banner */}
+        <div className="bg-gradient-to-br from-brand-950 via-brand-900 to-brand-850 px-8 py-9 text-center relative overflow-hidden border-b border-gold/30">
+          <div className="absolute right-0 top-0 w-32 h-32 bg-gold/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-gold via-amber-400 to-yellow-300 flex items-center justify-center text-brand-950 font-black text-2xl shadow-gold-glow ring-4 ring-gold/30 mb-3.5">
+              <span className="font-serif text-3xl font-black">B2P</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight font-serif">
+              BillToPrint
+            </h1>
+            <p className="text-[11px] text-amber-200/90 mt-1 uppercase tracking-widest font-semibold">
+              {storeName ? `${storeName} • Invoicing Suite` : 'Luxury POS & Billing Terminal'}
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            BillToPrint
-          </h1>
-          <p className="text-xs text-amber-200/90 mt-1 uppercase tracking-widest font-semibold">
-            {storeName ? `${storeName} • Invoicing System` : 'Enterprise Point of Sale & Billing'}
-          </p>
         </div>
 
         {/* Login Form Body */}
         <div className="p-6 sm:p-8 bg-white">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6">
+          <div className="flex items-center space-x-2.5 text-xs font-semibold text-brand-950 bg-brand-50/80 border border-brand-200/60 rounded-xl p-3.5 mb-5 shadow-2xs">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Enter staff or manager credentials to unlock the point of sale counter.</span>
+            <span>Enter staff credentials to unlock the point-of-sale terminal.</span>
           </div>
 
           {errorMsg && (
-            <div className="flex items-start space-x-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3 mb-5">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <div className="flex items-start space-x-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl p-3 mb-5 animate-shake">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Staff / Admin Email
               </label>
               <div className="relative">
@@ -81,13 +86,13 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@billtoprint.com"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:bg-white transition"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold focus:bg-white transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -100,14 +105,14 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:bg-white transition"
+                  className="w-full pl-10 pr-11 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold focus:bg-white transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-slate-400" />}
                 </button>
               </div>
             </div>
@@ -115,26 +120,27 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm disabled:opacity-60 cursor-pointer active-press"
+              className="w-full mt-4 bg-gradient-to-r from-brand-900 via-brand-850 to-brand-900 hover:from-brand-950 hover:to-brand-900 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm disabled:opacity-60 cursor-pointer active-press border border-gold/30 ring-2 ring-brand-900/10"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-gold" />
-                  <span>Verifying credentials...</span>
+                  <span>Verifying counter access...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In to POS Counter</span>
-                  <span className="text-gold font-bold">→</span>
+                  <span>Unlock POS Terminal</span>
+                  <span className="text-gold font-bold text-base">→</span>
                 </>
               )}
             </button>
           </form>
         </div>
 
-        {/* Footer */}
-        <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 text-center text-xs text-slate-500 font-medium">
-          BillToPrint • Professional Retail Billing Suite
+        {/* High-Trust Footer */}
+        <div className="bg-slate-50/80 border-t border-slate-100 px-6 py-3.5 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+          <span>🔒 256-bit Secure POS Session</span>
+          <span className="text-brand-900 font-bold">GST Compliant</span>
         </div>
       </div>
     </div>

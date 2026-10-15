@@ -853,49 +853,60 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-brand-50 text-brand-800 border border-brand-100">
-              <Receipt className="w-5 h-5" />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* High-Speed POS Terminal Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-gold/25 shadow-card">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-950 to-brand-900 text-gold flex items-center justify-center border border-gold/40 shadow-xs">
+            <Receipt className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight font-serif">
+                POS Billing Terminal
+              </h1>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+                Live Counter
+              </span>
             </div>
-            <span>POS Billing Counter</span>
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Fast billing terminal with real-time barcode / item search, dynamic add-ons, and auto-tax calculation.
-          </p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              High-speed billing counter with barcode scanner, live Supabase sync, and paise-accurate GST engine.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={() => setPricingMode((m: PricingMode) => m === 'inclusive' ? 'exclusive' : 'inclusive')}
             title="Click to toggle pricing mode"
-            className="text-xs px-3.5 py-2 rounded-xl bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200 text-brand-900 font-semibold transition cursor-pointer flex items-center gap-2 shadow-2xs"
+            className="text-xs px-3.5 py-2 rounded-xl bg-amber-50/90 hover:bg-amber-100/90 border border-amber-300/80 text-brand-950 font-bold transition cursor-pointer flex items-center gap-2 shadow-2xs active-press"
           >
-            <span className="text-slate-600 font-normal">Pricing:</span>
-            <strong className="text-brand-950 font-bold">
+            <span className="text-slate-600 font-normal">Pricing Mode:</span>
+            <strong className="text-brand-950 font-black">
               {pricingMode === 'inclusive' ? 'GST Included (MRP)' : 'Tax Exclusive (+GST)'}
             </strong>
-            <span className="text-[10px] text-amber-800 bg-amber-200/60 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Toggle</span>
+            <span className="text-[9px] text-amber-900 bg-amber-200/80 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">
+              Switch
+            </span>
           </button>
-          <span className={`text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs ${
+
+          <span className={`text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-2 shadow-2xs ${
             settings.registrationStatus === 'registered'
               ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
               : 'bg-slate-100 border border-slate-200 text-slate-700'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${settings.registrationStatus === 'registered' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-            {settings.registrationStatus === 'registered' ? 'GST Tax Invoice' : 'Retail Bill (Non-GST)'}
+            <span className={`w-2 h-2 rounded-full ${settings.registrationStatus === 'registered' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+            <span>{settings.registrationStatus === 'registered' ? 'GST Tax Invoice' : 'Retail Bill (Non-GST)'}</span>
           </span>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-sm animate-shake">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-xs animate-shake">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-600" />
           <div>
-            <p className="font-bold text-sm">Validation Error</p>
+            <p className="font-extrabold text-sm">Validation Notice</p>
             <p className="text-xs mt-0.5 font-medium">{errorMessage}</p>
           </div>
         </div>
@@ -904,51 +915,49 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-8 space-y-6">
           {/* Quick Product Search & Scan Bar */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5 text-brand-700" />
-                <span>Search Products & Add-ons</span>
+          <div className="luxury-card p-5 rounded-2xl border border-slate-200/80 shadow-card relative">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <Search className="w-4 h-4 text-brand-900" />
+                <span>Search Sarees, Accessories & Barcodes</span>
               </label>
-              <div className="flex items-center space-x-2 text-[11px] text-slate-500 font-medium">
-                <span className="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
-                  <Cloud className="w-3 h-3" /> Live Inventory
+              
+              <div className="flex items-center space-x-2 text-[11px] font-semibold text-slate-500">
+                <span className="flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md">
+                  <Cloud className="w-3 h-3 text-emerald-600" /> Live Inventory
                 </span>
                 <span>•</span>
-                <span className="flex items-center gap-1 text-purple-700 font-medium">
-                  <Sparkles className="w-3.5 h-3.5" /> Add-ons ({availableAddons.length})
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Database className="w-3.5 h-3.5" /> Catalogue
+                <span className="flex items-center gap-1 text-purple-800 bg-purple-50 border border-purple-200/70 px-2 py-0.5 rounded-md">
+                  <Sparkles className="w-3 h-3 text-purple-600" /> Add-ons ({availableAddons.length})
                 </span>
               </div>
             </div>
+
             {/* Scanner Notification Banner */}
             {scannerNotification && (
-              <div className="mb-3 p-2.5 rounded-xl bg-brand-900 text-gold flex items-center justify-between text-xs font-bold animate-in fade-in slide-in-from-top-1 shadow-md border border-gold/30">
+              <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-brand-950 to-brand-900 text-gold flex items-center justify-between text-xs font-bold shadow-md border border-gold/40 animate-fade-in">
                 <span className="flex items-center gap-2">
                   <ScanLine className="w-4 h-4 text-gold animate-pulse" />
                   <span>{scannerNotification}</span>
                 </span>
-                <span className="text-[10px] text-ivory/70 uppercase">Scanned</span>
+                <span className="text-[10px] bg-gold/20 text-gold px-2 py-0.5 rounded uppercase tracking-wider font-extrabold">Item Added</span>
               </div>
             )}
 
             <div className="flex flex-col sm:flex-row gap-2.5">
               <div className="relative flex-1">
-                <Search className="w-5 h-5 absolute left-3.5 top-3 text-slate-400" />
+                <Search className="w-5 h-5 absolute left-3.5 top-3.5 text-slate-400" />
                 <input
                   ref={searchInputRef}
                   type="text"
-                  placeholder="Search Sarees, Add-ons, or Scan Barcode..."
+                  placeholder="Type Saree name, weave (Katan, Organza, Jangla), SKU, or scan barcode..."
                   value={searchQuery}
                   onChange={e => {
                     setSearchQuery(e.target.value);
                     setShowProductDropdown(true);
                   }}
                   onFocus={() => setShowProductDropdown(true)}
-                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-700 focus:bg-white focus:outline-none transition"
+                  className="w-full pl-11 pr-10 py-3 text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gold focus:border-gold focus:bg-white focus:outline-none transition font-medium"
                 />
                 {isSearchingSupabase && (
                   <Loader2 className="w-4 h-4 absolute right-3.5 top-3.5 text-brand-600 animate-spin" />
@@ -961,9 +970,9 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   type="button"
                   onClick={() => setIsCameraScannerOpen(true)}
                   title="Scan with webcam / device camera"
-                  className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-200 shadow-2xs cursor-pointer active:scale-98 shrink-0"
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200/80 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-2 transition border border-slate-200 shadow-2xs cursor-pointer active-press shrink-0"
                 >
-                  <Camera className="w-4 h-4 text-brand-800" />
+                  <Camera className="w-4 h-4 text-brand-900" />
                   <span className="hidden sm:inline">Camera</span>
                 </button>
 
@@ -971,14 +980,14 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   type="button"
                   onClick={() => setIsRemoteLinkOpen(true)}
                   title="Link Phone Scanner via QR code"
-                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border shadow-2xs cursor-pointer active:scale-98 shrink-0 ${
+                  className={`px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2 transition border shadow-xs cursor-pointer active-press shrink-0 ${
                     isRemoteConnected
                       ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
-                      : 'bg-gradient-to-r from-brand-850 to-brand-950 text-white border-brand-900'
+                      : 'bg-gradient-to-r from-brand-950 to-brand-900 text-white border-gold/30 hover:shadow-md'
                   }`}
                 >
                   <Smartphone className="w-4 h-4 text-gold" />
-                  <span>Remote Scan</span>
+                  <span>Remote Scanner</span>
                   <span className={`w-2 h-2 rounded-full ${isRemoteConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gold'}`} />
                 </button>
               </div>
@@ -1123,19 +1132,19 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
-              <h2 className="text-xs font-bold text-brand-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Receipt className="w-4 h-4 text-brand-700" />
+          <div className="luxury-card rounded-2xl border border-slate-200/80 shadow-card overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/90 to-white">
+              <h2 className="text-xs font-bold text-brand-950 uppercase tracking-wider flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-brand-900" />
                 <span>Invoice Line Items ({items.length})</span>
               </h2>
               <button
                 type="button"
                 onClick={addItemRow}
-                className="flex items-center space-x-1 text-xs font-bold px-3 py-1.5 bg-brand-850 hover:bg-brand-950 text-white rounded-xl shadow-xs transition active-press cursor-pointer"
+                className="flex items-center space-x-1.5 text-xs font-bold px-3.5 py-2 bg-gradient-to-r from-brand-950 to-brand-900 hover:from-black hover:to-brand-950 text-white rounded-xl shadow-xs transition active-press cursor-pointer border border-gold/30"
               >
                 <Plus className="w-3.5 h-3.5 text-gold" />
-                <span>Add Row</span>
+                <span>Add Saree / Item</span>
               </button>
             </div>
 
@@ -1153,13 +1162,13 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                           placeholder="Item Description / Saree Name"
                           value={item.description}
                           onChange={e => updateItemRow(item.id, { description: e.target.value })}
-                          className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-1 focus:ring-brand-700 focus:outline-none"
+                          className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={() => removeItemRow(item.id)}
-                        className="p-2 mt-4 text-slate-400 hover:text-rose-600 active-press rounded-lg"
+                        className="p-2.5 mt-4 text-slate-400 hover:text-rose-600 active-press rounded-xl hover:bg-rose-50 transition"
                         title="Remove item"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1168,31 +1177,31 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
 
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase">Qty</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Qty</label>
                         <input
                           type="number"
                           min="1"
                           value={item.qty || ''}
                           onChange={e => updateItemRow(item.id, { qty: Number(e.target.value) || 0 })}
-                          className="w-full mt-0.5 p-2 text-center font-bold bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
+                          className="w-full mt-0.5 p-2 text-center font-bold bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none"
                         />
                       </div>
                       <div className="col-span-2">
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase">Rate (₹)</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Rate (₹)</label>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           value={item.unitPrice || ''}
                           onChange={e => updateItemRow(item.id, { unitPrice: Number(e.target.value) || 0 })}
-                          className="w-full mt-0.5 p-2 text-right font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
+                          className="w-full mt-0.5 p-2 text-right font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none tabular-nums"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase">Discount</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Discount</label>
                         <div className="flex items-center space-x-1 mt-0.5">
                           <input
                             type="number"
@@ -1200,12 +1209,12 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                             value={item.discountValue || ''}
                             placeholder="0"
                             onChange={e => updateItemRow(item.id, { discountValue: Number(e.target.value) || 0 })}
-                            className="w-full p-2 text-right font-mono bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
+                            className="w-full p-2 text-right font-mono bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white tabular-nums"
                           />
                           <button
                             type="button"
                             onClick={() => updateItemRow(item.id, { discountType: item.discountType === 'percentage' ? 'fixed' : 'percentage' })}
-                            className="px-2 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 active-press"
+                            className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 active-press border border-slate-200"
                           >
                             {item.discountType === 'percentage' ? '%' : '₹'}
                           </button>
@@ -1213,8 +1222,8 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                       </div>
 
                       <div className="text-right flex flex-col justify-end">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Total</span>
-                        <span className="font-mono font-black text-sm text-brand-900 mt-0.5">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Total</span>
+                        <span className="font-serif font-bold text-base text-brand-950 mt-0.5 tabular-nums">
                           ₹{computedLine ? computedLine.lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
                         </span>
                       </div>
@@ -1228,66 +1237,66 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
-                    <th className="py-2.5 px-3 min-w-[200px]">Description</th>
-                    <th className="py-2.5 px-2 w-20 text-center">HSN</th>
-                    <th className="py-2.5 px-2 w-16 text-center">Qty</th>
-                    <th className="py-2.5 px-2 w-24 text-right">Unit Rate (₹)</th>
-                    <th className="py-2.5 px-2 w-28 text-center">Discount</th>
+                  <tr className="bg-slate-50/80 text-slate-600 border-b border-slate-200/80">
+                    <th className="py-3 px-4 min-w-[220px] font-bold uppercase tracking-wider text-[11px]">Saree / Description</th>
+                    <th className="py-3 px-2 w-20 text-center font-bold uppercase tracking-wider text-[11px]">HSN</th>
+                    <th className="py-3 px-2 w-16 text-center font-bold uppercase tracking-wider text-[11px]">Qty</th>
+                    <th className="py-3 px-2 w-28 text-right font-bold uppercase tracking-wider text-[11px]">Rate (₹)</th>
+                    <th className="py-3 px-2 w-32 text-center font-bold uppercase tracking-wider text-[11px]">Discount</th>
                     {settings.registrationStatus === 'registered' && (
-                      <th className="py-2.5 px-2 w-20 text-center">GST %</th>
+                      <th className="py-3 px-2 w-20 text-center font-bold uppercase tracking-wider text-[11px]">GST %</th>
                     )}
-                    <th className="py-2.5 px-3 w-28 text-right">Line Total (₹)</th>
-                    <th className="py-2.5 px-2 w-10 text-center"></th>
+                    <th className="py-3 px-4 w-32 text-right font-bold uppercase tracking-wider text-[11px]">Line Total (₹)</th>
+                    <th className="py-3 px-2 w-10 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-100">
                   {items.map((item, idx) => {
                     const computedLine = calcResult.items[idx];
                     return (
-                      <tr key={item.id} className="hover:bg-gray-50/50">
-                        <td className="py-2 px-3">
+                      <tr key={item.id} className="hover:bg-amber-50/20 transition">
+                        <td className="py-2.5 px-4">
                           <input
                             type="text"
                             placeholder="e.g. Banarasi Katan Silk"
                             value={item.description}
                             onChange={e => updateItemRow(item.id, { description: e.target.value })}
-                            className="w-full p-1.5 bg-gray-50 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-brand-700 focus:bg-white"
+                            className="w-full p-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none"
                           />
                         </td>
 
-                        <td className="py-2 px-2 text-center">
+                        <td className="py-2.5 px-2 text-center">
                           <input
                             type="text"
                             value={item.hsnCode}
                             placeholder="5007"
                             onChange={e => updateItemRow(item.id, { hsnCode: e.target.value })}
-                            className="w-full p-1.5 text-center font-mono bg-gray-50 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-brand-700 focus:bg-white"
+                            className="w-full p-2 text-center font-mono bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:bg-white"
                           />
                         </td>
 
-                        <td className="py-2 px-2 text-center">
+                        <td className="py-2.5 px-2 text-center">
                           <input
                             type="number"
                             min="1"
                             value={item.qty || ''}
                             onChange={e => updateItemRow(item.id, { qty: Number(e.target.value) || 0 })}
-                            className="w-full p-1.5 text-center font-bold bg-gray-50 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-brand-700 focus:bg-white"
+                            className="w-full p-2 text-center font-bold bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none"
                           />
                         </td>
 
-                        <td className="py-2 px-2 text-right">
+                        <td className="py-2.5 px-2 text-right">
                           <input
                             type="number"
                             min="0"
                             step="0.01"
                             value={item.unitPrice || ''}
                             onChange={e => updateItemRow(item.id, { unitPrice: Number(e.target.value) || 0 })}
-                            className="w-full p-1.5 text-right font-mono bg-gray-50 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-brand-700 focus:bg-white"
+                            className="w-full p-2 text-right font-mono font-bold bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none tabular-nums"
                           />
                         </td>
 
-                        <td className="py-2 px-2">
+                        <td className="py-2.5 px-2">
                           <div className="flex items-center space-x-1">
                             <input
                               type="number"
@@ -1295,12 +1304,12 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                               value={item.discountValue || ''}
                               placeholder="0"
                               onChange={e => updateItemRow(item.id, { discountValue: Number(e.target.value) || 0 })}
-                              className="w-16 p-1.5 text-right font-mono bg-gray-50 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-brand-700 focus:bg-white"
+                              className="w-full p-2 text-right font-mono bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:bg-white tabular-nums"
                             />
                             <button
                               type="button"
                               onClick={() => updateItemRow(item.id, { discountType: item.discountType === 'percentage' ? 'fixed' : 'percentage' })}
-                              className="px-1.5 py-1 bg-gray-200 hover:bg-gray-300 rounded text-[10px] font-bold text-gray-700"
+                              className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 active-press border border-slate-200 shrink-0 cursor-pointer"
                               title="Toggle percentage or fixed amount"
                             >
                               {item.discountType === 'percentage' ? '%' : '₹'}
@@ -1309,11 +1318,11 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                         </td>
 
                         {settings.registrationStatus === 'registered' && (
-                          <td className="py-2 px-2 text-center">
+                          <td className="py-2.5 px-2 text-center">
                             <select
                               value={item.gstRate}
                               onChange={e => updateItemRow(item.id, { gstRate: Number(e.target.value) })}
-                              className="w-full p-1.5 font-mono bg-gray-50 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-brand-700 focus:bg-white"
+                              className="w-full p-2 text-center bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white"
                             >
                               {settings.supportedGstRates.map(r => (
                                 <option key={r} value={r}>{r}%</option>
@@ -1322,15 +1331,15 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                           </td>
                         )}
 
-                        <td className="py-2 px-3 text-right font-mono font-bold text-brand-900">
+                        <td className="py-2.5 px-4 text-right font-serif font-bold text-brand-950 text-sm tabular-nums">
                           ₹{computedLine ? computedLine.lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
                         </td>
 
-                        <td className="py-2 px-2 text-center">
+                        <td className="py-2.5 px-2 text-center">
                           <button
                             type="button"
                             onClick={() => removeItemRow(item.id)}
-                            className="text-gray-400 hover:text-rose-600 transition"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition active-press cursor-pointer"
                             title="Remove line"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1343,29 +1352,30 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
               </table>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+            {/* Special Bill-Level Discount Bar */}
+            <div className="p-4 bg-gradient-to-r from-amber-50/60 to-slate-50/60 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-4 text-xs">
               <div className="flex items-center space-x-2">
-                <span className="font-semibold text-gray-700">Special Bill Discount:</span>
+                <span className="font-bold text-slate-700">Special Bill Discount:</span>
                 <input
                   type="number"
                   min="0"
                   value={billDiscountValue || ''}
                   placeholder="0"
                   onChange={e => setBillDiscountValue(Number(e.target.value) || 0)}
-                  className="w-24 p-1.5 bg-white border border-gray-300 rounded text-xs font-mono text-right"
+                  className="w-24 p-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-right shadow-2xs tabular-nums focus:ring-2 focus:ring-gold focus:outline-none"
                 />
-                <div className="flex rounded border border-gray-300 overflow-hidden">
+                <div className="flex rounded-xl border border-slate-200 bg-white p-0.5 shadow-2xs overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setBillDiscountType('percentage')}
-                    className={`px-2 py-1 text-xs font-semibold ${billDiscountType === 'percentage' ? 'bg-brand-800 text-white' : 'bg-white text-gray-700'}`}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${billDiscountType === 'percentage' ? 'bg-brand-900 text-gold shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}
                   >
                     %
                   </button>
                   <button
                     type="button"
                     onClick={() => setBillDiscountType('fixed')}
-                    className={`px-2 py-1 text-xs font-semibold ${billDiscountType === 'fixed' ? 'bg-brand-800 text-white' : 'bg-white text-gray-700'}`}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${billDiscountType === 'fixed' ? 'bg-brand-900 text-gold shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}
                   >
                     ₹ Flat
                   </button>
@@ -1373,52 +1383,56 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
               </div>
 
               {calcResult.billDiscountAmount > 0 && (
-                <div className="text-amber-800 font-semibold font-mono">
-                  Allocated across lines: - ₹{calcResult.billDiscountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                <div className="text-amber-900 font-bold font-mono bg-amber-100/70 border border-amber-300 px-3 py-1 rounded-lg text-xs tabular-nums">
+                  Proportionately Allocated: - ₹{calcResult.billDiscountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-xl border border-ivory-border shadow-sm text-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="font-bold text-brand-900 uppercase tracking-wider flex items-center gap-1.5">
-                <UserPlus className="w-4 h-4 text-brand-700" />
-                Customer & Destination State
+          {/* Customer & Destination State Card */}
+          <div className="luxury-card p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-card text-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
+              <h3 className="font-bold text-brand-950 uppercase tracking-wider text-xs flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-brand-900" />
+                <span>Customer & Destination State</span>
               </h3>
 
-              <select
-                value={selectedCustomerId}
-                onChange={e => handleCustomerSelect(e.target.value)}
-                className="p-1.5 bg-gray-50 border border-gray-300 rounded text-xs max-w-xs"
-              >
-                <option value="cust-walkin">Walk-in Retail Customer</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                ))}
-              </select>
+              <div className="flex items-center space-x-2">
+                <span className="text-slate-500 font-medium">Saved Client:</span>
+                <select
+                  value={selectedCustomerId}
+                  onChange={e => handleCustomerSelect(e.target.value)}
+                  className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs max-w-xs font-medium focus:ring-2 focus:ring-gold focus:outline-none"
+                >
+                  <option value="cust-walkin">Walk-in Retail Customer</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-600 font-medium mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 text-brand-700" />
-                    Customer Phone Number
+                <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-brand-900" />
+                    Customer Mobile Number
                   </span>
                   {customerLookupStatus === 'searching' && (
-                    <span className="text-[10px] text-brand-600 flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Checking DB...
+                    <span className="text-[10px] text-brand-600 flex items-center gap-1 font-semibold">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Verifying...
                     </span>
                   )}
                   {customerLookupStatus === 'existing' && (
-                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      <UserCheck className="w-3 h-3" /> Existing Customer (Auto-filled)
+                    <span className="text-[10px] text-emerald-800 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <UserCheck className="w-3 h-3 text-emerald-600" /> Recognized VIP
                     </span>
                   )}
                   {customerLookupStatus === 'new' && (
-                    <span className="text-[10px] text-blue-700 font-semibold flex items-center gap-1 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
-                      <Plus className="w-3 h-3" /> New Customer
+                    <span className="text-[10px] text-blue-800 font-bold flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      <Plus className="w-3 h-3 text-blue-600" /> New Customer
                     </span>
                   )}
                 </label>
@@ -1426,56 +1440,53 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   type="text"
                   value={customerPhone}
                   onChange={e => handleCustomerPhoneChange(e.target.value)}
-                  placeholder="Type 10-digit mobile number to auto-fill..."
-                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700 font-mono"
+                  placeholder="Enter 10-digit mobile number..."
+                  className="w-full p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-gold focus:bg-white font-mono font-medium tracking-wide"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-600 font-medium mb-1 flex items-center justify-between">
-                  <span>Customer Name</span>
-                  {customerLookupStatus === 'new' && (
-                    <span className="text-[10px] text-gray-500 italic">Enter name for first-time customer</span>
-                  )}
+                <label className="block text-slate-700 font-bold mb-1.5">
+                  Customer Full Name
                 </label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={e => setCustomerName(e.target.value)}
                   placeholder="Customer Full Name"
-                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700"
+                  className="w-full p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-gold focus:bg-white font-medium"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               <div>
-                <label className="block text-gray-600 font-medium mb-1">Billing Address</label>
+                <label className="block text-slate-700 font-bold mb-1.5">Billing Address</label>
                 <input
                   type="text"
                   value={customerAddress}
                   onChange={e => setCustomerAddress(e.target.value)}
-                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700"
+                  className="w-full p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-gold focus:bg-white font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-600 font-medium mb-1">
-                  Place of Supply (Determines CGST/SGST vs IGST)
+                <label className="block text-slate-700 font-bold mb-1.5">
+                  Place of Supply (State Code)
                 </label>
                 <select
                   value={posStateCode}
                   onChange={e => setPosStateCode(e.target.value)}
-                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-brand-700"
+                  className="w-full p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-gold focus:bg-white font-medium"
                 >
                   {INDIAN_STATES.map(st => (
                     <option key={st.code} value={st.code}>
-                      {st.code} - {st.name} {st.code === settings.stateCode ? '(Store Local State)' : ''}
+                      {st.code} - {st.name} {st.code === settings.stateCode ? '(Store Origin: UP)' : ''}
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-gray-500 mt-1">
-                  Tax Treatment: <strong className="text-brand-900">{calcResult.supplyType === 'intra_state' ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</strong>
+                <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
+                  Tax routing: <strong className="text-brand-950 font-bold">{calcResult.supplyType === 'intra_state' ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</strong>
                 </p>
               </div>
             </div>
@@ -1483,105 +1494,132 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         </div>
 
         <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-20">
-          <div className="bg-white p-5 rounded-xl border border-ivory-border shadow-md">
-            <h3 className="font-bold text-brand-900 uppercase tracking-wider text-xs border-b border-gray-200 pb-2 mb-4">
-              Bill Summary
-            </h3>
+          <div className="luxury-card p-5 sm:p-6 rounded-2xl border border-gold/30 shadow-luxury relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 pointer-events-none" />
 
-            <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between text-gray-600">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <h3 className="font-bold text-brand-950 uppercase tracking-wider text-xs font-serif flex items-center gap-2">
+                <span>Receipt Summary</span>
+              </h3>
+              <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                {pricingMode === 'inclusive' ? 'MRP Included' : '+ Tax Extra'}
+              </span>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between text-slate-600 font-medium">
                 <span>{pricingMode === 'inclusive' ? 'Total MRP / Retail Value:' : 'Gross Subtotal:'}</span>
-                <span className="font-mono font-medium">₹{calcResult.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono font-bold text-slate-900 tabular-nums">₹{calcResult.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
 
               {calcResult.totalDiscount > 0 && (
-                <div className="flex justify-between text-amber-800">
+                <div className="flex justify-between text-amber-800 font-semibold bg-amber-50/60 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
                   <span>Total Discount:</span>
-                  <span className="font-mono font-medium">- ₹{calcResult.totalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <span className="font-mono tabular-nums">- ₹{calcResult.totalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
 
-              <div className="flex justify-between text-gray-700 font-medium pt-2 border-t border-gray-100">
+              <div className="flex justify-between text-slate-700 font-medium pt-2 border-t border-slate-100">
                 <span>Taxable Value:</span>
-                <span className="font-mono">₹{calcResult.taxableTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono font-bold text-slate-900 tabular-nums">₹{calcResult.taxableTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
 
               {settings.registrationStatus === 'registered' ? (
-                <>
+                <div className="space-y-1.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200/60">
                   {calcResult.supplyType === 'intra_state' ? (
                     <>
-                      <div className="flex justify-between text-gray-600">
-                        <span>CGST Amount{pricingMode === 'inclusive' ? ' (Included)' : ''}:</span>
-                        <span className="font-mono">₹{calcResult.cgstTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <div className="flex justify-between text-slate-600">
+                        <span>CGST Tax{pricingMode === 'inclusive' ? ' (Included)' : ''}:</span>
+                        <span className="font-mono font-semibold tabular-nums">₹{calcResult.cgstTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
-                      <div className="flex justify-between text-gray-600">
-                        <span>SGST Amount{pricingMode === 'inclusive' ? ' (Included)' : ''}:</span>
-                        <span className="font-mono">₹{calcResult.sgstTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <div className="flex justify-between text-slate-600">
+                        <span>SGST Tax{pricingMode === 'inclusive' ? ' (Included)' : ''}:</span>
+                        <span className="font-mono font-semibold tabular-nums">₹{calcResult.sgstTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="flex justify-between text-gray-600">
-                      <span>IGST Amount{pricingMode === 'inclusive' ? ' (Included)' : ''}:</span>
-                      <span className="font-mono">₹{calcResult.igstTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <div className="flex justify-between text-slate-600">
+                      <span>IGST Tax{pricingMode === 'inclusive' ? ' (Included)' : ''}:</span>
+                      <span className="font-mono font-semibold tabular-nums">₹{calcResult.igstTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
 
                   {pricingMode === 'inclusive' && (
-                    <div className="text-[10px] text-gray-500 bg-gray-50 p-1.5 rounded border border-gray-100 text-center italic">
-                      * GST is included in product price. Not added on top.
+                    <div className="text-[10px] text-slate-500 pt-1 text-center italic border-t border-slate-200/50">
+                      * GST is embedded inside product MRP.
                     </div>
                   )}
-                </>
+                </div>
               ) : (
-                <div className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
-                  Unregistered mode: No GST calculated or collected.
+                <div className="text-[11px] text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200 font-medium">
+                  Retail Cash Memo: Unregistered non-tax invoice.
                 </div>
               )}
 
               {calcResult.roundOff !== 0 && (
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-slate-500 text-[11px]">
                   <span>Round Off:</span>
-                  <span className="font-mono">{calcResult.roundOff > 0 ? ('+ ₹' + calcResult.roundOff.toFixed(2)) : ('- ₹' + Math.abs(calcResult.roundOff).toFixed(2))}</span>
+                  <span className="font-mono font-medium tabular-nums">{calcResult.roundOff > 0 ? ('+ ₹' + calcResult.roundOff.toFixed(2)) : ('- ₹' + Math.abs(calcResult.roundOff).toFixed(2))}</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-baseline pt-3 border-t-2 border-brand-800 text-brand-900">
-                <span className="font-bold text-sm uppercase">Total Payable:</span>
-                <span className="font-bold font-mono text-2xl text-brand-900">
-                  ₹{calcResult.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+              {/* Master Grand Total Highlight */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-brand-950 via-brand-900 to-[#2A000A] text-white shadow-lg border border-gold/30 space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-xs uppercase tracking-widest text-amber-200/90">
+                    Grand Total
+                  </span>
+                  <span className="text-[10px] font-mono text-gold bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
+                    PAISE-ACCURATE
+                  </span>
+                </div>
 
-              <div className="p-2.5 bg-brand-50/60 rounded text-[11px] text-gray-700 italic border border-brand-100">
-                {numberToWordsIndian(calcResult.grandTotal)}
+                <div className="text-3xl sm:text-4xl font-extrabold font-serif tracking-tight text-white tabular-nums">
+                  ₹{calcResult.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+
+                <p className="text-[11px] text-amber-100/80 italic font-normal leading-relaxed pt-1 border-t border-white/10">
+                  {numberToWordsIndian(calcResult.grandTotal)}
+                </p>
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <h4 className="font-bold text-gray-800 uppercase tracking-wider text-[11px] mb-2">
-                Payment Collection
-              </h4>
+            {/* Payment Recording Matrix */}
+            <div className="mt-5 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2.5">
+                <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                  Payment Collection
+                </h4>
+                {/* Instant Quick-Fill Full Amount Button */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentAmount(calcResult.grandTotal)}
+                  className="text-[10px] font-bold text-brand-900 bg-brand-50 hover:bg-brand-100 px-2 py-0.5 rounded-md border border-brand-200 transition cursor-pointer active-press"
+                >
+                  Pay Full (₹{Math.round(calcResult.grandTotal)})
+                </button>
+              </div>
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-gray-600 mb-1">Amount Received (₹)</label>
+                  <label className="block text-slate-600 font-bold mb-1">Amount Received (₹)</label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     value={paymentAmount || ''}
                     onChange={e => setPaymentAmount(Number(e.target.value) || 0)}
-                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded font-mono font-bold text-sm text-gray-900"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-extrabold text-base text-slate-900 focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none tabular-nums"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-gray-600 mb-1">Method</label>
+                    <label className="block text-slate-600 font-medium mb-1">Payment Method</label>
                     <select
                       value={paymentMethod}
                       onChange={e => setPaymentMethod(e.target.value as PaymentMethod)}
-                      className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs"
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-gold focus:outline-none"
                     >
                       {settings.supportedPaymentMethods.map(m => (
                         <option key={m} value={m}>{m}</option>
@@ -1590,25 +1628,25 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-gray-600 mb-1">Reference / UPI ID</label>
+                    <label className="block text-slate-600 font-medium mb-1">Reference / UTR</label>
                     <input
                       type="text"
-                      placeholder="e.g. UPI Ref"
+                      placeholder="e.g. UPI / Card No."
                       value={paymentRef}
                       onChange={e => setPaymentRef(e.target.value)}
-                      className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs"
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-gold focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-600 mb-1">Salesperson / Attendant</label>
+                  <label className="block text-slate-600 font-medium mb-1">Sales Attendant / Staff</label>
                   <select
                     value={selectedStaffId}
                     onChange={e => setSelectedStaffId(e.target.value)}
-                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-gold focus:outline-none"
                   >
-                    <option value="">Direct Counter (No Agent)</option>
+                    <option value="">Direct Counter (Store Cashier)</option>
                     {staffList.map(st => (
                       <option key={st.id} value={st.id}>
                         {st.name} {st.commission_rate > 0 ? `(${st.commission_rate}% comm)` : ''}
@@ -1617,30 +1655,34 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                   </select>
                 </div>
 
-                <div className="flex justify-between items-center p-2 rounded bg-gray-50 text-xs">
-                  <span className="text-gray-600">Balance Due:</span>
-                  <span className="font-bold font-mono text-brand-800">
+                {/* Balance Due Pill */}
+                <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+                  <span className="text-slate-600 font-medium">Balance Due:</span>
+                  <span className={`font-mono font-extrabold text-sm tabular-nums ${
+                    (calcResult.grandTotal - (paymentAmount || 0)) > 0 ? 'text-rose-700' : 'text-emerald-700'
+                  }`}>
                     ₹{Math.max(0, calcResult.grandTotal - (paymentAmount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="mt-6 space-y-2.5">
               <button
                 type="button"
                 disabled={isSubmitting || calcResult.grandTotal <= 0}
                 onClick={() => handleSaveInvoice(true)}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-brand-800 to-brand-900 hover:from-brand-900 hover:to-brand-950 text-white rounded-xl font-extrabold text-sm shadow-md hover:shadow-lg flex items-center justify-center space-x-2 transition duration-150 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full py-4 px-4 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-gold text-brand-950 rounded-xl font-black text-sm shadow-gold-glow hover:shadow-xl flex items-center justify-center space-x-2 transition-all duration-150 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed active-press border border-yellow-200/60"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin text-gold" />
-                    <span>Processing & Finalizing Bill...</span>
+                    <Loader2 className="w-5 h-5 animate-spin text-brand-950" />
+                    <span>Finalizing & Printing Bill...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5 text-gold" />
+                    <CheckCircle className="w-5 h-5 stroke-[2.5]" />
                     <span>Finalize & Print Invoice</span>
                   </>
                 )}
@@ -1650,7 +1692,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleSaveInvoice(false)}
-                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer disabled:opacity-50 active-press border border-slate-200"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { loginWithPassword } from '../store/useAuthStore';
 
 interface LoginProps {
   storeName?: string;
+  onLoginSuccess?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ storeName }) => {
+export const Login: React.FC<LoginProps> = ({ storeName, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,10 +26,14 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
 
     setLoading(true);
     const { error } = await loginWithPassword(cleanEmail, password);
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       setErrorMsg(error.message || 'Authentication failed. Please verify your credentials.');
+    } else {
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     }
   };
 
@@ -59,10 +64,6 @@ export const Login: React.FC<LoginProps> = ({ storeName }) => {
 
         {/* Login Form Body */}
         <div className="p-6 sm:p-8 bg-white">
-          <div className="flex items-center space-x-2.5 text-xs font-semibold text-brand-950 bg-brand-50/80 border border-brand-200/60 rounded-xl p-3.5 mb-5 shadow-2xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Enter staff credentials to unlock the point-of-sale terminal.</span>
-          </div>
 
           {errorMsg && (
             <div className="flex items-start space-x-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl p-3 mb-5 animate-shake">

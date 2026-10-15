@@ -85,12 +85,15 @@ export function initAuth() {
 
 export async function loginWithPassword(email: string, password: string): Promise<{ error: Error | null }> {
   try {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) {
       return { error };
+    }
+    if (data?.user) {
+      await updateSessionUser(data.user);
     }
     return { error: null };
   } catch (err: any) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   StoreSettings, 
   Product, 
@@ -54,8 +54,13 @@ export function App() {
   const [editingDraft, setEditingDraft] = useState<Invoice | null>(null);
 
   const { user, isAuthenticated, isInitialized, logout } = useAuth();
+  const loadCountRef = useRef(0);
 
-  const loadData = async () => {
+  const loadData = async (showLoader = false) => {
+    const currentReq = ++loadCountRef.current;
+    if (showLoader) {
+      setLoading(true);
+    }
     try {
       await initDatabase();
       cleanupNonSareeInventoryItems();
@@ -69,6 +74,11 @@ export function App() {
         fetchSupabaseAddonSales(),
         getLocalDisplayPreferences()
       ]);
+
+      // If a newer request was triggered while fetching, ignore this stale result
+      if (currentReq !== loadCountRef.current) {
+        return;
+      }
 
       setSettings(s);
       setProducts(p);
@@ -135,13 +145,16 @@ export function App() {
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
-      setLoading(false);
+      if (currentReq === loadCountRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!isInitialized) return;
+    loadData(true);
+  }, [isInitialized, isAuthenticated]);
 
   const handleInvoiceCreated = async (newInvoice: Invoice) => {
     await loadData();
@@ -201,7 +214,12 @@ export function App() {
 
   // If user is not authenticated, render Login view
   if (!isAuthenticated) {
-    return <Login storeName={settings.tradeName} />;
+    return (
+      <Login 
+        storeName={settings.tradeName} 
+        onLoginSuccess={() => loadData(true)}
+      />
+    );
   }
 
   return (
@@ -219,7 +237,11 @@ export function App() {
         storeName={settings.tradeName}
         registrationStatus={settings.registrationStatus}
         user={user}
-        onLogout={logout}
+        onLogout={async () => {
+          await logout();
+          setInvoices([]);
+          setCustomers([]);
+        }}
         displayPrefs={displayPrefs}
       />
 

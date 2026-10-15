@@ -662,8 +662,8 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         id: selectedCustomerId || ('cust-' + Date.now()),
         name: customerName || 'Walk-in Retail Customer',
         phone: customerPhone || '9999999999',
-        billingAddress: customerAddress || 'Varanasi',
-        state: selectedPosState?.name || 'Uttar Pradesh',
+        billingAddress: customerAddress || (settings.address || 'Store Counter'),
+        state: selectedPosState?.name || settings.state || 'Bihar',
         stateCode: posStateCode,
         gstin: customerGstin || undefined,
         createdAt: new Date().toISOString()
@@ -697,7 +697,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         sellerSnapshot: { ...settings },
         customerId: selectedCustomerId,
         customerSnapshot: selectedCustomerObj,
-        placeOfSupplyState: selectedPosState?.name || 'Uttar Pradesh',
+        placeOfSupplyState: selectedPosState?.name || settings.state || 'Bihar',
         placeOfSupplyCode: posStateCode,
         supplyType: calcResult.supplyType,
         isRegisteredTaxInvoice: calcResult.isRegisteredTaxInvoice,
@@ -1481,7 +1481,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 >
                   {INDIAN_STATES.map(st => (
                     <option key={st.code} value={st.code}>
-                      {st.code} - {st.name} {st.code === settings.stateCode ? '(Store Origin: UP)' : ''}
+                      {st.code} - {st.name}{st.code === settings.stateCode ? ` (Store Origin: ${st.name})` : ''}
                     </option>
                   ))}
                 </select>

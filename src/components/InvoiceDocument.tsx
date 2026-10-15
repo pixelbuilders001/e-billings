@@ -206,7 +206,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
               </div>
               <div>
                 <span className="text-gray-500">Supply Type:</span>{' '}
-                <span className="font-medium capitalize">{invoice.supplyType === 'intra_state' ? 'Intra-State (UP)' : 'Inter-State'}</span>
+                <span className="font-medium capitalize">{invoice.supplyType === 'intra_state' ? 'Intra-State' : 'Inter-State'}</span>
               </div>
             </div>
           </div>

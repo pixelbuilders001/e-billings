@@ -25,7 +25,7 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
   const [businessName, setBusinessName] = useState('');
   const [gstin, setGstin] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
-  const [stateCode, setStateCode] = useState('09');
+  const [stateCode, setStateCode] = useState('10');
   const [notes, setNotes] = useState('');
 
   const filteredCustomers = customers.filter(c => {
@@ -49,7 +49,7 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
     setBusinessName('');
     setGstin('');
     setBillingAddress('');
-    setStateCode('09');
+    setStateCode('10');
     setNotes('');
   };
 
@@ -62,7 +62,7 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
     setBusinessName(c.businessName || '');
     setGstin(c.gstin || '');
     setBillingAddress(c.billingAddress);
-    setStateCode(c.stateCode || '09');
+    setStateCode(c.stateCode || '10');
     setNotes(c.notes || '');
   };
 
@@ -85,8 +85,8 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
       email: email.trim() || undefined,
       businessName: businessName.trim() || undefined,
       gstin: gstin.trim().toUpperCase() || undefined,
-      billingAddress: billingAddress.trim() || 'Varanasi',
-      state: matchedState?.name || 'Uttar Pradesh',
+      billingAddress: billingAddress.trim() || 'Patna',
+      state: matchedState?.name || 'Bihar',
       stateCode: stateCode,
       notes: notes.trim() || undefined,
       loyaltyMemberCode: editingCustomer?.loyaltyMemberCode,

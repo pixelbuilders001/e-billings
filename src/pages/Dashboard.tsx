@@ -290,6 +290,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
       )}
+
+      {/* Store Showcase Image when KPIs and Recent Invoices are both turned off */}
+      {!showKpis && !showRecentList && (
+        <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md">
+          <div className="relative aspect-[4/3] md:aspect-[16/9] max-h-[640px] w-full bg-slate-100 flex items-center justify-center overflow-hidden group">
+            <img
+              src="/store_pic.webp"
+              alt={settings.tradeName || 'Store Front'}
+              className="w-full h-full object-cover object-center group-hover:scale-[1.01] transition-transform duration-500"
+            />
+            {/* Elegant overlay at the bottom */}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow font-serif">
+                  {settings.tradeName}
+                </h3>
+                <p className="text-xs sm:text-sm text-amber-200/90 font-medium drop-shadow mt-0.5">
+                  Banarasi Sarees • Wedding Collections • Silk Sarees • Designer Sarees
+                </p>
+              </div>
+              <button
+                onClick={onNewInvoice}
+                className="self-start sm:self-auto flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold to-amber-300 hover:from-amber-300 hover:to-gold text-brand-950 font-black text-xs shadow-lg transition active-press cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Create New Bill</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

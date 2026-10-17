@@ -14,7 +14,8 @@ import {
   getAllInvoices,
   getInitialDisplayPreferences,
   getLocalDisplayPreferences,
-  saveLocalDisplayPreferences
+  saveLocalDisplayPreferences,
+  deleteInvoice
 } from './db';
 import { Navbar, NavTab } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
@@ -158,7 +159,26 @@ export function App() {
 
   const handleInvoiceCreated = async (newInvoice: Invoice) => {
     await loadData();
+    setEditingDraft(null);
     setViewingInvoice(newInvoice);
+  };
+
+  const handleEditDraft = (invoice: Invoice) => {
+    // Edit loads the existing draft directly into POS terminal
+    setEditingDraft(invoice);
+    setViewingInvoice(null);
+    setCurrentTab('new-invoice');
+  };
+
+  const handleDeleteDraft = async (invoiceId: string) => {
+    await deleteInvoice(invoiceId);
+    if (editingDraft?.id === invoiceId) {
+      setEditingDraft(null);
+    }
+    if (viewingInvoice?.id === invoiceId) {
+      setViewingInvoice(null);
+    }
+    await loadData();
   };
 
   const handleDuplicateInvoice = (invoice: Invoice) => {
@@ -251,6 +271,8 @@ export function App() {
           <InvoiceDocument
             invoice={viewingInvoice}
             onBack={() => setViewingInvoice(null)}
+            onEditDraft={handleEditDraft}
+            onDeleteDraft={handleDeleteDraft}
           />
         ) : (
           <>
@@ -263,6 +285,7 @@ export function App() {
                   setCurrentTab('new-invoice');
                 }}
                 onViewInvoice={inv => setViewingInvoice(inv)}
+                onEditDraft={handleEditDraft}
                 onGoToSettings={() => setCurrentTab('settings')}
                 showKpis={displayPrefs.showDashboardKpis}
                 showRecentList={displayPrefs.showDashboardRecentInvoices}
@@ -271,10 +294,13 @@ export function App() {
 
             {currentTab === 'new-invoice' && (
               <NewInvoice
+                key={editingDraft?.id || 'new'}
                 settings={settings}
                 products={products}
                 customers={customers}
                 initialDraft={editingDraft}
+                onCancelDraft={() => setEditingDraft(null)}
+                onDeleteDraft={handleDeleteDraft}
                 onInvoiceCreated={handleInvoiceCreated}
                 onRefreshData={loadData}
               />
@@ -284,6 +310,8 @@ export function App() {
               <InvoiceList
                 invoices={invoices}
                 onViewInvoice={inv => setViewingInvoice(inv)}
+                onEditDraft={handleEditDraft}
+                onDeleteDraft={handleDeleteDraft}
                 onDuplicateAsNew={handleDuplicateInvoice}
                 onNewInvoice={() => {
                   setEditingDraft(null);

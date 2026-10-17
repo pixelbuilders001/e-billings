@@ -6,7 +6,8 @@ import {
   PlusCircle, 
   Eye, 
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  FileEdit
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -14,6 +15,7 @@ interface DashboardProps {
   settings: StoreSettings;
   onNewInvoice: () => void;
   onViewInvoice: (invoice: Invoice) => void;
+  onEditDraft?: (invoice: Invoice) => void;
   onGoToSettings?: () => void;
   showKpis?: boolean;
   showRecentList?: boolean;
@@ -24,6 +26,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   settings,
   onNewInvoice,
   onViewInvoice,
+  onEditDraft,
   onGoToSettings,
   showKpis = true,
   showRecentList = true
@@ -353,13 +356,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-center">
-                            <button
-                              onClick={() => onViewInvoice(inv)}
-                              className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-brand-950 bg-gradient-to-r from-gold/15 to-amber-200/30 hover:from-gold/30 hover:to-amber-200/50 border border-gold/40 rounded-xl transition active-press cursor-pointer shadow-2xs"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-brand-900" />
-                              <span>View</span>
-                            </button>
+                            <div className="flex items-center justify-center space-x-1.5">
+                              {inv.status === 'draft' && onEditDraft && (
+                                <button
+                                  onClick={() => onEditDraft(inv)}
+                                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-bold text-brand-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 rounded-xl transition active-press cursor-pointer shadow-2xs"
+                                  title="Edit and complete billing for this draft"
+                                >
+                                  <FileEdit className="w-3.5 h-3.5" />
+                                  <span>Edit</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={() => onViewInvoice(inv)}
+                                className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-brand-950 bg-gradient-to-r from-gold/15 to-amber-200/30 hover:from-gold/30 hover:to-amber-200/50 border border-gold/40 rounded-xl transition active-press cursor-pointer shadow-2xs"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-brand-900" />
+                                <span>View</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

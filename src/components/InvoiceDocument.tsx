@@ -1,6 +1,6 @@
 import React from 'react';
 import { Invoice } from '../types';
-import { Printer, Download, Share2, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Printer, Download, Share2, Copy, Check, ArrowLeft, FileEdit, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { numberToWordsIndian } from '../engine/numberToWords';
@@ -8,9 +8,11 @@ import { numberToWordsIndian } from '../engine/numberToWords';
 interface InvoiceDocumentProps {
   invoice: Invoice;
   onBack?: () => void;
+  onEditDraft?: (invoice: Invoice) => void;
+  onDeleteDraft?: (invoiceId: string) => void;
 }
 
-export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBack }) => {
+export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBack, onEditDraft, onDeleteDraft }) => {
   const [copied, setCopied] = React.useState(false);
   const [downloading, setDownloading] = React.useState(false);
   const printRef = React.useRef<HTMLDivElement>(null);
@@ -108,8 +110,12 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
             </button>
           )}
           <div>
-            <span className="text-[10px] uppercase tracking-widest font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/70">
-              Tax Document
+            <span className={`text-[10px] uppercase tracking-widest font-extrabold px-2 py-0.5 rounded-full border ${
+              invoice.status === 'draft'
+                ? 'text-amber-800 bg-amber-50 border-amber-300'
+                : 'text-emerald-800 bg-emerald-50 border-emerald-300'
+            }`}>
+              {invoice.status === 'draft' ? 'Draft Invoice' : 'Tax Document'}
             </span>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 font-mono flex items-center gap-2 mt-0.5">
               <span>{invoice.invoiceNumber}</span>
@@ -125,6 +131,30 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {invoice.status === 'draft' && onEditDraft && (
+            <button
+              onClick={() => onEditDraft(invoice)}
+              className="flex items-center space-x-2 px-4 py-2.5 text-xs font-black text-brand-950 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-xs transition cursor-pointer active-press border border-amber-300"
+            >
+              <FileEdit className="w-4 h-4 stroke-[2.5]" />
+              <span>Edit & Bill Draft</span>
+            </button>
+          )}
+
+          {invoice.status === 'draft' && onDeleteDraft && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete draft invoice ${invoice.invoiceNumber}?`)) {
+                  onDeleteDraft(invoice.id);
+                }
+              }}
+              className="flex items-center space-x-1.5 px-3.5 py-2.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer active-press border border-rose-200"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>Delete Draft</span>
+            </button>
+          )}
+
           <button
             onClick={handlePrint}
             className="flex items-center space-x-2 px-5 py-2.5 text-xs font-black text-brand-950 bg-gradient-to-r from-gold via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-gold rounded-xl shadow-gold-glow hover:shadow-lg transition cursor-pointer active-press border border-yellow-200/60"
@@ -151,6 +181,47 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
           </button>
         </div>
       </div>
+
+      {/* Draft Notification Banner */}
+      {invoice.status === 'draft' && (
+        <div className="no-print mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-300 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center space-x-3">
+            <span className="px-2.5 py-1 rounded-xl bg-amber-200/90 text-amber-950 font-extrabold text-xs">
+              DRAFT
+            </span>
+            <div>
+              <p className="text-xs text-amber-950 font-bold">Unfinalized Draft Invoice</p>
+              <p className="text-[11px] text-amber-900/80">
+                This invoice has not been finalized yet. Click "Edit & Bill Draft" to adjust items, add payment, or print official bill.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {onDeleteDraft && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to delete draft invoice ${invoice.invoiceNumber}?`)) {
+                    onDeleteDraft(invoice.id);
+                  }
+                }}
+                className="px-3 py-2 text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 rounded-xl transition flex items-center space-x-1.5 shadow-2xs active-press"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Delete</span>
+              </button>
+            )}
+            {onEditDraft && (
+              <button
+                onClick={() => onEditDraft(invoice)}
+                className="px-3.5 py-2 text-xs font-bold text-brand-950 bg-amber-400 hover:bg-amber-500 rounded-xl transition flex items-center space-x-1.5 shadow-2xs active-press"
+              >
+                <FileEdit className="w-3.5 h-3.5" />
+                <span>Resume & Bill</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* The Printable A4 Invoice Container */}
       <div 

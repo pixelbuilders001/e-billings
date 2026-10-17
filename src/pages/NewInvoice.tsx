@@ -12,7 +12,7 @@ import {
 import { INDIAN_STATES } from '../engine/indianStates';
 import { calculateInvoice } from '../engine/calculator';
 import { numberToWordsIndian } from '../engine/numberToWords';
-import { allocateNextInvoiceNumber, saveInvoice } from '../db';
+import { allocateNextInvoiceNumber, saveInvoice, deleteInvoice } from '../db';
 import { 
   searchInventory, 
   InventoryItem, 
@@ -49,7 +49,9 @@ import {
   UserCheck,
   Camera,
   Smartphone,
-  ScanLine
+  ScanLine,
+  FileEdit,
+  XCircle
 } from 'lucide-react';
 
 interface NewInvoiceProps {
@@ -59,6 +61,8 @@ interface NewInvoiceProps {
   onInvoiceCreated: (invoice: Invoice) => void;
   onRefreshData?: () => void;
   initialDraft?: Invoice | null;
+  onCancelDraft?: () => void;
+  onDeleteDraft?: (invoiceId: string) => void;
 }
 
 interface WorkingItem {
@@ -80,7 +84,9 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   products,
   customers,
   onInvoiceCreated,
-  initialDraft
+  initialDraft,
+  onCancelDraft,
+  onDeleteDraft
 }) => {
   const { user } = useAuth();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
@@ -133,9 +139,15 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     initialDraft?.pricingMode || settings.pricingMode || 'inclusive'
   );
 
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
-  const [paymentRef, setPaymentRef] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState<number>(
+    initialDraft?.paidTotal || initialDraft?.payments?.[0]?.amount || 0
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    initialDraft?.payments?.[0]?.method || 'Cash'
+  );
+  const [paymentRef, setPaymentRef] = useState<string>(
+    initialDraft?.payments?.[0]?.reference || ''
+  );
   const [notes] = useState<string>(initialDraft?.notes || '');
 
   // Fast Product Search state (Supabase + Local + Add-ons)
@@ -843,7 +855,11 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
           });
 
           if (!saleErr && createdSale?.id) {
+            const previousDraftId = initialDraft?.id;
             fullInvoice.id = createdSale.id;
+            if (previousDraftId && previousDraftId !== createdSale.id) {
+              await deleteInvoice(previousDraftId);
+            }
           } else if (saleErr) {
             console.warn('Could not sync to Supabase sales table (offline or schema fallback):', saleErr.message);
           }
@@ -911,6 +927,55 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
           </span>
         </div>
       </div>
+
+      {initialDraft && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-amber-500/15 border-2 border-amber-400/80 shadow-md flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-brand-950 flex items-center justify-center font-black shadow-sm flex-shrink-0">
+              <FileEdit className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md">
+                  Active Draft
+                </span>
+                <span className="font-mono font-bold text-slate-900 text-sm">
+                  {initialDraft.invoiceNumber}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5 font-medium">
+                You are currently editing a saved draft. Modify items, customer, or payments, then click <strong className="text-slate-800">"Update Draft"</strong> or <strong className="text-brand-900">"Finalize & Bill Invoice"</strong>.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {onDeleteDraft && initialDraft?.id && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to permanently delete draft ${initialDraft.invoiceNumber}?`)) {
+                    onDeleteDraft(initialDraft.id);
+                  }
+                }}
+                className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 rounded-xl shadow-xs transition cursor-pointer active-press"
+              >
+                <Trash2 className="w-4 h-4 text-rose-600" />
+                <span>Delete Draft</span>
+              </button>
+            )}
+            {onCancelDraft && (
+              <button
+                type="button"
+                onClick={onCancelDraft}
+                className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-xs transition cursor-pointer active-press"
+              >
+                <XCircle className="w-4 h-4 text-slate-500" />
+                <span>Discard & New Bill</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-xs animate-shake">
@@ -1689,7 +1754,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 ) : (
                   <>
                     <CheckCircle className="w-5 h-5 stroke-[2.5]" />
-                    <span>Finalize & Print Invoice</span>
+                    <span>{initialDraft?.status === 'draft' ? 'Finalize & Bill Invoice' : 'Finalize & Print Invoice'}</span>
                   </>
                 )}
               </button>
@@ -1705,7 +1770,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 ) : (
                   <Save className="w-3.5 h-3.5 text-slate-500" />
                 )}
-                <span>Save as Draft</span>
+                <span>{initialDraft?.status === 'draft' ? 'Update Draft' : 'Save as Draft'}</span>
               </button>
             </div>
           </div>

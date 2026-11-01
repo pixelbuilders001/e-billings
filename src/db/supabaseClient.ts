@@ -620,6 +620,59 @@ export async function createSupabaseSale(input: CreateSaleInput): Promise<{ data
   }
 }
 
+export interface UpdateSaleSettlementInput {
+  saleId: string;
+  totalAmount: number;
+  amountPaid: number;
+  dueAmount: number;
+  discountAmount?: number;
+  paymentStatus: 'paid' | 'partially_paid' | 'due' | 'unpaid' | string;
+  paymentMode?: string;
+  updatedBy?: string;
+}
+
+/**
+ * Updates a sale's financial settlement (actual amount received, round-off discount waiver, or balance due)
+ * in Supabase public.sales table so accounting and cash drawer reports match.
+ */
+export async function updateSupabaseSaleSettlement(
+  input: UpdateSaleSettlementInput
+): Promise<{ success: boolean; error: any }> {
+  try {
+    const normalizedStatus = input.paymentStatus === 'partially_paid'
+      ? 'partial'
+      : (input.paymentStatus === 'unpaid' ? 'due' : input.paymentStatus);
+
+    const updatePayload: any = {
+      total_amount: input.totalAmount,
+      amount_paid: input.amountPaid,
+      due_amount: input.dueAmount,
+      payment_status: normalizedStatus,
+      updated_by: input.updatedBy || 'admin'
+    };
+    if (input.discountAmount !== undefined) {
+      updatePayload.discount_amount = input.discountAmount;
+    }
+    if (input.paymentMode) {
+      updatePayload.payment_mode = input.paymentMode.toLowerCase();
+    }
+
+    const { error } = await supabase
+      .from('sales')
+      .update(updatePayload)
+      .eq('id', input.saleId);
+
+    if (error) {
+      console.warn('Failed to update sale settlement in Supabase:', error.message);
+      return { success: false, error };
+    }
+    return { success: true, error: null };
+  } catch (err) {
+    console.warn('Exception updating sale settlement in Supabase:', err);
+    return { success: false, error: err };
+  }
+}
+
 /**
  * Converts a Supabase sale record (with joined customer and sale_items)
  * into the application's Invoice domain model for viewing, printing, and PDF generation.

@@ -25,12 +25,14 @@ import {
   SupabaseStaff,
   resolveInventorySareeId,
   recordSupabaseAddonSale,
+  updateSupabaseSaleSettlement,
   supabase
 } from '../db/supabaseClient';
 import { useAuth } from '../store/useAuthStore';
 import { playBeep } from '../utils/audio';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { RemoteScannerModal } from '../components/RemoteScannerModal';
+import { PaymentSettlementModal, SettlementResult } from '../components/PaymentSettlementModal';
 import { 
   Search, 
   Plus, 
@@ -191,6 +193,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [createdInvoiceForSettlement, setCreatedInvoiceForSettlement] = useState<Invoice | null>(null);
 
   // Debounced search on Supabase public.inventory
   useEffect(() => {
@@ -869,13 +872,76 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       }
 
       await saveInvoice(fullInvoice);
-      onInvoiceCreated(fullInvoice);
+      if (finalize) {
+        // Pop-up the Tender & Settlement modal so cashier can confirm exact cash received or waive change
+        setCreatedInvoiceForSettlement(fullInvoice);
+      } else {
+        onInvoiceCreated(fullInvoice);
+      }
     } catch (err: any) {
       console.error(err);
       setErrorMessage('Failed to save invoice: ' + (err.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleConfirmSettlement = async (settlement: SettlementResult) => {
+    if (!createdInvoiceForSettlement) return;
+    const inv: Invoice = { ...createdInvoiceForSettlement };
+
+    if (settlement.settlementType === 'waive_roundoff') {
+      inv.roundOff = Number(((inv.roundOff || 0) - settlement.waivedDiscountAmount).toFixed(2));
+      inv.discountTotal = Number(((inv.discountTotal || 0) + settlement.waivedDiscountAmount).toFixed(2));
+      inv.grandTotal = settlement.settledGrandTotal;
+      inv.paidTotal = settlement.amountPaid;
+      inv.balanceDue = 0;
+      inv.paymentStatus = 'paid';
+      inv.amountInWords = numberToWordsIndian(settlement.settledGrandTotal);
+    } else {
+      inv.paidTotal = settlement.amountPaid;
+      inv.balanceDue = settlement.dueAmount;
+      inv.paymentStatus = settlement.dueAmount > 0 ? (settlement.amountPaid > 0 ? 'partially_paid' : 'unpaid') : 'paid';
+    }
+
+    inv.payments = [
+      {
+        id: `pay-${Date.now()}`,
+        invoiceId: inv.id,
+        date: new Date().toISOString().split('T')[0],
+        amount: settlement.amountPaid,
+        method: settlement.paymentMethod,
+        note: settlement.settlementType === 'waive_roundoff' && settlement.waivedDiscountAmount > 0
+          ? `Settled with ₹${settlement.waivedDiscountAmount} round-off discount`
+          : undefined
+      }
+    ];
+
+    await saveInvoice(inv);
+
+    // Sync updated settlement to Supabase sales table
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inv.id)) {
+      await updateSupabaseSaleSettlement({
+        saleId: inv.id,
+        totalAmount: inv.grandTotal,
+        amountPaid: inv.paidTotal,
+        dueAmount: inv.balanceDue,
+        discountAmount: inv.discountTotal,
+        paymentStatus: inv.paymentStatus,
+        paymentMode: settlement.paymentMethod,
+        updatedBy: user?.email || 'admin'
+      });
+    }
+
+    setCreatedInvoiceForSettlement(null);
+    onInvoiceCreated(inv);
+  };
+
+  const handleSkipSettlement = () => {
+    if (!createdInvoiceForSettlement) return;
+    const inv = createdInvoiceForSettlement;
+    setCreatedInvoiceForSettlement(null);
+    onInvoiceCreated(inv);
   };
 
   return (
@@ -1790,6 +1856,15 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         onClose={() => setIsRemoteLinkOpen(false)}
         isConnected={isRemoteConnected}
       />
+
+      {createdInvoiceForSettlement && (
+        <PaymentSettlementModal
+          invoice={createdInvoiceForSettlement}
+          isOpen={true}
+          onClose={handleSkipSettlement}
+          onConfirmSettlement={handleConfirmSettlement}
+        />
+      )}
     </div>
   );
 };

@@ -1,18 +1,34 @@
 import React from 'react';
 import { Invoice } from '../types';
-import { Printer, Download, Share2, Copy, Check, ArrowLeft, FileEdit, Trash2 } from 'lucide-react';
+import { Printer, Download, Share2, Copy, Check, ArrowLeft, FileEdit, Trash2, Coins } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { numberToWordsIndian } from '../engine/numberToWords';
+import { saveInvoice } from '../db';
+import { updateSupabaseSaleSettlement } from '../db/supabaseClient';
+import { PaymentSettlementModal, SettlementResult } from './PaymentSettlementModal';
 
 interface InvoiceDocumentProps {
   invoice: Invoice;
   onBack?: () => void;
   onEditDraft?: (invoice: Invoice) => void;
   onDeleteDraft?: (invoiceId: string) => void;
+  onInvoiceUpdated?: (invoice: Invoice) => void;
 }
 
-export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBack, onEditDraft, onDeleteDraft }) => {
+export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ 
+  invoice: initialInvoice, 
+  onBack, 
+  onEditDraft, 
+  onDeleteDraft,
+  onInvoiceUpdated
+}) => {
+  const [invoice, setInvoice] = React.useState<Invoice>(initialInvoice);
+  React.useEffect(() => {
+    setInvoice(initialInvoice);
+  }, [initialInvoice]);
+
+  const [isSettlementOpen, setIsSettlementOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [downloading, setDownloading] = React.useState(false);
   const printRef = React.useRef<HTMLDivElement>(null);
@@ -95,6 +111,56 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
     }
   };
 
+  const handleConfirmSettlement = async (settlement: SettlementResult) => {
+    const inv: Invoice = { ...invoice };
+
+    if (settlement.settlementType === 'waive_roundoff') {
+      inv.roundOff = Number(((inv.roundOff || 0) - settlement.waivedDiscountAmount).toFixed(2));
+      inv.discountTotal = Number(((inv.discountTotal || 0) + settlement.waivedDiscountAmount).toFixed(2));
+      inv.grandTotal = settlement.settledGrandTotal;
+      inv.paidTotal = settlement.amountPaid;
+      inv.balanceDue = 0;
+      inv.paymentStatus = 'paid';
+      inv.amountInWords = numberToWordsIndian(settlement.settledGrandTotal);
+    } else {
+      inv.paidTotal = settlement.amountPaid;
+      inv.balanceDue = settlement.dueAmount;
+      inv.paymentStatus = settlement.dueAmount > 0 ? (settlement.amountPaid > 0 ? 'partially_paid' : 'unpaid') : 'paid';
+    }
+
+    inv.payments = [
+      {
+        id: `pay-${Date.now()}`,
+        invoiceId: inv.id,
+        date: new Date().toISOString().split('T')[0],
+        amount: settlement.amountPaid,
+        method: settlement.paymentMethod,
+        note: settlement.settlementType === 'waive_roundoff' && settlement.waivedDiscountAmount > 0
+          ? `Settled with ₹${settlement.waivedDiscountAmount} round-off discount`
+          : undefined
+      }
+    ];
+
+    await saveInvoice(inv);
+
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inv.id)) {
+      await updateSupabaseSaleSettlement({
+        saleId: inv.id,
+        totalAmount: inv.grandTotal,
+        amountPaid: inv.paidTotal,
+        dueAmount: inv.balanceDue,
+        discountAmount: inv.discountTotal,
+        paymentStatus: inv.paymentStatus,
+        paymentMode: settlement.paymentMethod,
+        updatedBy: 'admin'
+      });
+    }
+
+    setInvoice(inv);
+    onInvoiceUpdated?.(inv);
+    setIsSettlementOpen(false);
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6">
       {/* Top Action Toolbar (Hidden in Print) */}
@@ -152,6 +218,17 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
             >
               <Trash2 className="w-4 h-4 text-rose-600" />
               <span>Delete Draft</span>
+            </button>
+          )}
+
+          {invoice.status !== 'draft' && (
+            <button
+              onClick={() => setIsSettlementOpen(true)}
+              className="flex items-center space-x-1.5 px-3.5 py-2.5 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 rounded-xl transition cursor-pointer active-press border border-amber-300 shadow-2xs"
+              title="Adjust Tender / Waive Round-off"
+            >
+              <Coins className="w-4 h-4 text-amber-700" />
+              <span>Settle Tender (₹)</span>
             </button>
           )}
 
@@ -577,6 +654,15 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({ invoice, onBac
           </div>
         </div>
       </div>
+
+      {isSettlementOpen && (
+        <PaymentSettlementModal
+          invoice={invoice}
+          isOpen={true}
+          onClose={() => setIsSettlementOpen(false)}
+          onConfirmSettlement={handleConfirmSettlement}
+        />
+      )}
     </div>
   );
 };

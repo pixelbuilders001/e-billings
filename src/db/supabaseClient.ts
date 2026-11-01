@@ -321,6 +321,7 @@ export interface SupabaseSale {
   total_gst: number;
   loyalty_points_redeemed?: number | null;
   loyalty_points_earned?: number | null;
+  round_off?: number | null;
   amount_paid?: number | null;
   due_amount?: number | null;
   payment_status?: string | null;
@@ -920,6 +921,16 @@ export function convertSupabaseSaleToInvoice(
     totalTax: totalGst
   }] : [];
 
+  // Calculate round-off: difference between grandTotal and expected gross net total
+  let computedRoundOff = Number(sale.round_off) || 0;
+  if (computedRoundOff === 0) {
+    if (isGstApplied && taxableAmount > 0) {
+      computedRoundOff = parseFloat((totalAmount - (taxableAmount + totalGst)).toFixed(2));
+    } else if (grossSubtotal > 0) {
+      computedRoundOff = parseFloat((totalAmount - (grossSubtotal - discountAmount)).toFixed(2));
+    }
+  }
+
   return {
     id: sale.id,
     invoiceNumber: sale.invoice_number || `SBS-${sale.id.slice(0, 8).toUpperCase()}`,
@@ -942,7 +953,7 @@ export function convertSupabaseSaleToInvoice(
     cgstTotal: cgstAmount,
     sgstTotal: sgstAmount,
     igstTotal: igstAmount,
-    roundOff: 0,
+    roundOff: computedRoundOff,
     grandTotal: totalAmount,
     rateBreakdown,
     amountInWords: numberToWordsIndian(totalAmount),

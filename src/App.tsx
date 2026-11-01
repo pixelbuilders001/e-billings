@@ -15,6 +15,7 @@ import {
   getInitialDisplayPreferences,
   getLocalDisplayPreferences,
   saveLocalDisplayPreferences,
+  saveInvoice,
   deleteInvoice
 } from './db';
 import { Navbar, NavTab } from './components/Navbar';
@@ -122,16 +123,26 @@ export function App() {
       mappedSupaInvoices.forEach(supaInv => {
         const key = supaInv.invoiceNumber || supaInv.id;
         const localInv = invoiceMap.get(key);
-        if (localInv && localInv.items && localInv.items.length > supaInv.items.length) {
-          // Preserve local invoice items which include add-ons (blouse pieces, aster/astar, fall & pico)
+        if (localInv) {
+          // Preserve local invoice state (exact items, settled grandTotal, exact roundOff, payments)
           invoiceMap.set(key, {
             ...supaInv,
-            items: localInv.items,
+            ...localInv,
+            // Keep Supabase UUID if synced
+            id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(supaInv.id)
+              ? supaInv.id
+              : localInv.id,
+            items: localInv.items && localInv.items.length >= supaInv.items.length ? localInv.items : supaInv.items,
             rateBreakdown: localInv.rateBreakdown?.length ? localInv.rateBreakdown : supaInv.rateBreakdown,
-            subtotal: localInv.subtotal,
-            grandTotal: localInv.grandTotal,
-            discountTotal: localInv.discountTotal,
-            taxableTotal: localInv.taxableTotal,
+            subtotal: localInv.subtotal ?? supaInv.subtotal,
+            grandTotal: localInv.grandTotal ?? supaInv.grandTotal,
+            discountTotal: localInv.discountTotal ?? supaInv.discountTotal,
+            taxableTotal: localInv.taxableTotal ?? supaInv.taxableTotal,
+            roundOff: localInv.roundOff !== undefined ? localInv.roundOff : supaInv.roundOff,
+            paidTotal: localInv.paidTotal ?? supaInv.paidTotal,
+            balanceDue: localInv.balanceDue ?? supaInv.balanceDue,
+            paymentStatus: localInv.paymentStatus ?? supaInv.paymentStatus,
+            payments: localInv.payments?.length ? localInv.payments : supaInv.payments,
             amountInWords: localInv.amountInWords || supaInv.amountInWords
           });
         } else {
@@ -158,6 +169,7 @@ export function App() {
   }, [isInitialized, isAuthenticated]);
 
   const handleInvoiceCreated = async (newInvoice: Invoice) => {
+    await saveInvoice(newInvoice);
     await loadData();
     setEditingDraft(null);
     setViewingInvoice(newInvoice);

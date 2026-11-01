@@ -76,7 +76,8 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: 1200
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF({
@@ -95,7 +96,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
-      while (heightLeft > 0) {
+      while (heightLeft > 3) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
@@ -301,20 +302,21 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
       )}
 
       {/* The Printable A4 Invoice Container */}
-      <div 
-        ref={printRef}
-        className="bg-white text-gray-900 p-8 sm:p-10 shadow-lg rounded-xl border border-gray-200 print:shadow-none print:border-none print:p-0 print:m-0 print:rounded-none"
-        style={{ minHeight: '280mm' }}
-      >
-        {/* Header: Brand, Title & Metadata */}
-        <div className="border-b-2 border-brand-800 pb-5 mb-5 flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brand-800 tracking-tight">
-              {seller.tradeName}
-            </h1>
-            <p className="text-xs text-gray-600 font-medium">
-              {seller.legalName}
-            </p>
+      <div className="overflow-x-auto pb-4 print:overflow-visible print:pb-0">
+        <div 
+          ref={printRef}
+          className="w-full max-w-[210mm] min-w-[760px] mx-auto bg-white text-gray-900 p-8 sm:p-10 shadow-lg rounded-xl border border-gray-200 print:shadow-none print:border-none print:p-0 print:m-0 print:rounded-none print:min-w-0 print:max-w-none print:w-full"
+          style={{ minHeight: '280mm' }}
+        >
+          {/* Header: Brand, Title & Metadata */}
+          <div className="border-b-2 border-brand-800 pb-5 mb-5 flex flex-row justify-between items-start gap-4">
+            <div className="flex-1 min-w-0 pr-4">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brand-800 tracking-tight">
+                {seller.tradeName}
+              </h1>
+              <p className="text-xs text-gray-600 font-medium">
+                {seller.legalName}
+              </p>
               <p className="text-xs text-gray-600 mt-1 max-w-sm">
                 {seller.address}, {seller.city}, {seller.state} - Code: {seller.stateCode}
               </p>
@@ -322,98 +324,98 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
                 <span><strong>Phone:</strong> {seller.phone}</span>
                 {seller.email && <span><strong>Email:</strong> {seller.email}</span>}
               </div>
-            {isTaxInvoice && seller.gstin && (
-              <div className="mt-1.5 inline-block bg-amber-50 border border-gold/40 px-2 py-0.5 rounded text-xs font-mono font-bold text-brand-900">
-                GSTIN: {seller.gstin}
+              {isTaxInvoice && seller.gstin && (
+                <div className="mt-1.5 inline-block bg-amber-50 border border-gold/40 px-2 py-0.5 rounded text-xs font-mono font-bold text-brand-900">
+                  GSTIN: {seller.gstin}
+                </div>
+              )}
+            </div>
+
+            <div className="text-right flex flex-col items-end flex-shrink-0">
+              <div>
+                <span className="inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-wider bg-brand-800 text-white">
+                  {isTaxInvoice ? 'TAX INVOICE' : 'RETAIL BILL / CASH MEMO'}
+                </span>
+                <p className="text-xs text-gray-500 mt-1 italic">
+                  {isTaxInvoice ? 'Original for Recipient' : 'Cash Bill'}
+                </p>
               </div>
-            )}
+              
+              <div className="mt-4 text-xs space-y-1">
+                <div>
+                  <span className="text-gray-500">Invoice No:</span>{' '}
+                  <span className="font-mono font-bold text-sm text-gray-900">{invoice.invoiceNumber}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Date:</span>{' '}
+                  <span className="font-medium">{new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Place of Supply:</span>{' '}
+                  <span className="font-medium">{invoice.placeOfSupplyState} ({invoice.placeOfSupplyCode})</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Supply Type:</span>{' '}
+                  <span className="font-medium capitalize">{invoice.supplyType === 'intra_state' ? 'Intra-State' : 'Inter-State'}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="text-left sm:text-right flex flex-col justify-between">
+          {/* Billed To / Recipient Details */}
+          <div className="grid grid-cols-2 gap-4 mb-6 p-3 bg-brand-50/50 rounded-lg border border-brand-100 text-xs">
             <div>
-              <span className="inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-wider bg-brand-800 text-white">
-                {isTaxInvoice ? 'TAX INVOICE' : 'RETAIL BILL / CASH MEMO'}
-              </span>
-              <p className="text-xs text-gray-500 mt-1 italic">
-                {isTaxInvoice ? 'Original for Recipient' : 'Cash Bill'}
+              <h3 className="font-bold text-brand-800 uppercase tracking-wider text-[11px] mb-1">
+                Billed To (Buyer):
+              </h3>
+              <p className="font-bold text-sm text-gray-900">{customer.name}</p>
+              {customer.businessName && (
+                <p className="font-medium text-gray-700">{customer.businessName}</p>
+              )}
+              <p className="text-gray-600 mt-0.5">{customer.billingAddress}</p>
+              <p className="text-gray-600">
+                State: {customer.state} ({customer.stateCode})
               </p>
+              <p className="text-gray-600 mt-0.5">Phone: {customer.phone}</p>
+              {customer.gstin && (
+                <p className="font-mono font-semibold text-brand-900 mt-1">
+                  Buyer GSTIN: {customer.gstin}
+                </p>
+              )}
             </div>
-            
-            <div className="mt-4 text-xs space-y-1">
-              <div>
-                <span className="text-gray-500">Invoice No:</span>{' '}
-                <span className="font-mono font-bold text-sm text-gray-900">{invoice.invoiceNumber}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Date:</span>{' '}
-                <span className="font-medium">{new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Place of Supply:</span>{' '}
-                <span className="font-medium">{invoice.placeOfSupplyState} ({invoice.placeOfSupplyCode})</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Supply Type:</span>{' '}
-                <span className="font-medium capitalize">{invoice.supplyType === 'intra_state' ? 'Intra-State' : 'Inter-State'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Billed To / Recipient Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-3 bg-brand-50/50 rounded-lg border border-brand-100 text-xs">
-          <div>
-            <h3 className="font-bold text-brand-800 uppercase tracking-wider text-[11px] mb-1">
-              Billed To (Buyer):
-            </h3>
-            <p className="font-bold text-sm text-gray-900">{customer.name}</p>
-            {customer.businessName && (
-              <p className="font-medium text-gray-700">{customer.businessName}</p>
-            )}
-            <p className="text-gray-600 mt-0.5">{customer.billingAddress}</p>
-            <p className="text-gray-600">
-              State: {customer.state} ({customer.stateCode})
-            </p>
-            <p className="text-gray-600 mt-0.5">Phone: {customer.phone}</p>
-            {customer.gstin && (
-              <p className="font-mono font-semibold text-brand-900 mt-1">
-                Buyer GSTIN: {customer.gstin}
+            <div className="border-l border-brand-200/60 pl-4">
+              <h3 className="font-bold text-brand-800 uppercase tracking-wider text-[11px] mb-1">
+                Payment & Status:
+              </h3>
+              <p className="text-gray-700">
+                <span className="text-gray-500">Payment Status:</span>{' '}
+                <span className={`font-bold uppercase text-[11px] px-2 py-0.5 rounded ${
+                  invoice.paymentStatus === 'paid' 
+                    ? 'bg-emerald-100 text-emerald-800' 
+                    : invoice.paymentStatus === 'partially_paid'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {invoice.paymentStatus.replace('_', ' ')}
+                </span>
               </p>
-            )}
+              <p className="text-gray-700 mt-1">
+                <span className="text-gray-500">Amount Paid:</span>{' '}
+                <span className="font-bold text-gray-900">₹{invoice.paidTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </p>
+              <p className="text-gray-700 mt-0.5">
+                <span className="text-gray-500">Balance Due:</span>{' '}
+                <span className="font-bold text-brand-800">₹{invoice.balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </p>
+              {invoice.payments && invoice.payments.length > 0 && (
+                <div className="mt-1 text-gray-600">
+                  <span>Method: </span>
+                  {invoice.payments.map(p => `${p.method} (₹${p.amount})`).join(', ')}
+                </div>
+              )}
+            </div>
           </div>
-
-          <div className="border-t sm:border-t-0 sm:border-l border-brand-200/60 pt-2 sm:pt-0 sm:pl-4">
-            <h3 className="font-bold text-brand-800 uppercase tracking-wider text-[11px] mb-1">
-              Payment & Status:
-            </h3>
-            <p className="text-gray-700">
-              <span className="text-gray-500">Payment Status:</span>{' '}
-              <span className={`font-bold uppercase text-[11px] px-2 py-0.5 rounded ${
-                invoice.paymentStatus === 'paid' 
-                  ? 'bg-emerald-100 text-emerald-800' 
-                  : invoice.paymentStatus === 'partially_paid'
-                  ? 'bg-amber-100 text-amber-800'
-                  : 'bg-rose-100 text-rose-800'
-              }`}>
-                {invoice.paymentStatus.replace('_', ' ')}
-              </span>
-            </p>
-            <p className="text-gray-700 mt-1">
-              <span className="text-gray-500">Amount Paid:</span>{' '}
-              <span className="font-bold text-gray-900">₹{invoice.paidTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-            </p>
-            <p className="text-gray-700 mt-0.5">
-              <span className="text-gray-500">Balance Due:</span>{' '}
-              <span className="font-bold text-brand-800">₹{invoice.balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-            </p>
-            {invoice.payments && invoice.payments.length > 0 && (
-              <div className="mt-1 text-gray-600">
-                <span>Method: </span>
-                {invoice.payments.map(p => `${p.method} (₹${p.amount})`).join(', ')}
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* Line Items Table */}
         <div className="overflow-x-auto mb-6">
@@ -470,7 +472,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         </div>
 
         {/* Calculation Summary & Rate-wise Tax Table */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mb-6">
+        <div className="grid grid-cols-2 gap-6 items-start mb-6">
           {/* Left Column: Tax Rate Summary (GST Registered) or Terms */}
           <div>
             {isTaxInvoice ? (
@@ -589,10 +591,16 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
               </div>
             )}
 
-            {invoice.roundOff !== 0 && (
+            {(invoice.roundOff !== 0 || seller?.roundOffRule === 'nearest_rupee') && (
               <div className="flex justify-between text-gray-500">
                 <span>Round Off:</span>
-                <span className="font-mono">{invoice.roundOff > 0 ? `+ ₹${invoice.roundOff.toFixed(2)}` : `- ₹${Math.abs(invoice.roundOff).toFixed(2)}`}</span>
+                <span className="font-mono">
+                  {invoice.roundOff > 0
+                    ? `+ ₹${invoice.roundOff.toFixed(2)}`
+                    : invoice.roundOff < 0
+                    ? `- ₹${Math.abs(invoice.roundOff).toFixed(2)}`
+                    : '₹0.00'}
+                </span>
               </div>
             )}
 
@@ -611,8 +619,8 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         </div>
 
         {/* Full-width Amount in Words Banner for complete PDF & Print visibility */}
-        <div className="mb-6 p-3.5 bg-brand-50/80 border border-brand-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div>
+        <div className="mb-6 p-3.5 bg-brand-50/80 border border-brand-200 rounded-xl flex flex-row items-center justify-between gap-4 text-xs">
+          <div className="flex-1 min-w-0">
             <span className="font-bold text-brand-900 uppercase tracking-wider text-[10px] block">
               Total Amount in Words (INR):
             </span>
@@ -620,7 +628,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
               {amountInWords}
             </p>
           </div>
-          <div className="text-left sm:text-right sm:border-l sm:border-brand-200 sm:pl-4 whitespace-nowrap">
+          <div className="text-right border-l border-brand-200 pl-4 whitespace-nowrap flex-shrink-0">
             <span className="text-[10px] text-gray-500 uppercase tracking-wider block">Grand Total</span>
             <span className="font-mono font-bold text-brand-900 text-base">
               ₹{invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -629,7 +637,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         </div>
 
         {/* Footer & Authorized Signatory */}
-        <div className="border-t border-gray-200 pt-4 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-end text-xs">
+        <div className="border-t border-gray-200 pt-4 mt-6 grid grid-cols-2 gap-6 items-end text-xs">
           <div>
             <h4 className="font-bold text-gray-700 uppercase tracking-wider text-[10px] mb-1">
               Terms & Conditions:
@@ -653,6 +661,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {isSettlementOpen && (

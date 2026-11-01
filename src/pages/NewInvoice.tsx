@@ -144,6 +144,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
   const [paymentAmount, setPaymentAmount] = useState<number>(
     initialDraft?.paidTotal || initialDraft?.payments?.[0]?.amount || 0
   );
+  const [settleToReceived, setSettleToReceived] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     initialDraft?.payments?.[0]?.method || 'Cash'
   );
@@ -638,6 +639,35 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     roundOffRule: settings.roundOffRule
   });
 
+  const tenderDiff = (paymentAmount > 0 && calcResult.grandTotal > 0)
+    ? Number((calcResult.grandTotal - paymentAmount).toFixed(2))
+    : 0;
+
+  const effectiveGrandTotal = (settleToReceived && paymentAmount > 0) ? paymentAmount : calcResult.grandTotal;
+  const effectiveRoundOff = (settleToReceived && paymentAmount > 0)
+    ? Number(((calcResult.roundOff || 0) - tenderDiff).toFixed(2))
+    : calcResult.roundOff;
+  const effectiveDiscount = (settleToReceived && paymentAmount > 0)
+    ? Number(((calcResult.totalDiscount || 0) + tenderDiff).toFixed(2))
+    : calcResult.totalDiscount;
+  const effectivePaidSoFar = paymentAmount > 0 ? paymentAmount : 0;
+  const effectiveBalanceDue = settleToReceived
+    ? 0
+    : Math.max(0, calcResult.grandTotal - effectivePaidSoFar);
+  const effectivePayStatus = (effectivePaidSoFar >= effectiveGrandTotal || settleToReceived)
+    ? 'paid'
+    : (effectivePaidSoFar > 0 ? 'partially_paid' : 'unpaid');
+
+  const handlePaymentAmountChange = (val: number) => {
+    setPaymentAmount(val);
+    const diff = calcResult.grandTotal - val;
+    if (val > 0 && diff > 0 && diff <= 100) {
+      setSettleToReceived(true);
+    } else if (val <= 0 || diff === 0) {
+      setSettleToReceived(false);
+    }
+  };
+
   useEffect(() => {
     if (calcResult.grandTotal > 0 && paymentAmount === 0 && !initialDraft) {
       setPaymentAmount(calcResult.grandTotal);
@@ -693,15 +723,9 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         createdAt: new Date().toISOString()
       };
 
-      const paidSoFar = paymentAmount > 0 ? paymentAmount : 0;
-      const balanceDue = Math.max(0, calcResult.grandTotal - paidSoFar);
-      
-      let payStatus: 'unpaid' | 'partially_paid' | 'paid' = 'unpaid';
-      if (paidSoFar >= calcResult.grandTotal) {
-        payStatus = 'paid';
-      } else if (paidSoFar > 0) {
-        payStatus = 'partially_paid';
-      }
+      const paidSoFar = effectivePaidSoFar;
+      const balanceDue = effectiveBalanceDue;
+      const payStatus = effectivePayStatus;
 
       const payments: PaymentRecord[] = paidSoFar > 0 ? [
         {
@@ -709,7 +733,10 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
           date: new Date().toISOString(),
           amount: paidSoFar,
           method: paymentMethod,
-          reference: paymentRef || undefined
+          reference: paymentRef || undefined,
+          note: (settleToReceived && tenderDiff !== 0)
+            ? `Settled with ₹${Math.abs(tenderDiff)} round-off adjustment`
+            : undefined
         }
       ] : [];
 
@@ -730,15 +757,15 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
         billDiscountType,
         billDiscountValue,
         subtotal: calcResult.subtotal,
-        discountTotal: calcResult.totalDiscount,
+        discountTotal: effectiveDiscount,
         taxableTotal: calcResult.taxableTotal,
         cgstTotal: calcResult.cgstTotal,
         sgstTotal: calcResult.sgstTotal,
         igstTotal: calcResult.igstTotal,
-        roundOff: calcResult.roundOff,
-        grandTotal: calcResult.grandTotal,
+        roundOff: effectiveRoundOff,
+        grandTotal: effectiveGrandTotal,
         rateBreakdown: calcResult.rateBreakdown,
-        amountInWords: numberToWordsIndian(calcResult.grandTotal),
+        amountInWords: numberToWordsIndian(effectiveGrandTotal),
         payments,
         paidTotal: paidSoFar,
         balanceDue,
@@ -788,10 +815,10 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
           const salePayload: any = {
             invoice_number: invNumber,
             customer_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(supabaseCustomerId || '') ? supabaseCustomerId : null,
-            total_amount: calcResult.grandTotal,
+            total_amount: effectiveGrandTotal,
             profit: netProfit,
             payment_mode: (paymentMethod || 'cash').toLowerCase(),
-            discount_amount: calcResult.totalDiscount,
+            discount_amount: effectiveDiscount,
             discount_percentage: billDiscountType === 'percentage' ? billDiscountValue : null,
             is_gst_applied: calcResult.isRegisteredTaxInvoice,
             gst_rate: calcResult.rateBreakdown?.[0]?.rate || 5,
@@ -872,7 +899,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
       }
 
       await saveInvoice(fullInvoice);
-      if (finalize) {
+      if (finalize && !settleToReceived && paymentAmount === 0) {
         // Pop-up the Tender & Settlement modal so cashier can confirm exact cash received or waive change
         setCreatedInvoiceForSettlement(fullInvoice);
       } else {
@@ -1693,10 +1720,16 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 </div>
               )}
 
-              {calcResult.roundOff !== 0 && (
+              {(effectiveRoundOff !== 0 || settings.roundOffRule === 'nearest_rupee') && (
                 <div className="flex justify-between text-slate-500 text-[11px]">
                   <span>Round Off:</span>
-                  <span className="font-mono font-medium tabular-nums">{calcResult.roundOff > 0 ? ('+ ₹' + calcResult.roundOff.toFixed(2)) : ('- ₹' + Math.abs(calcResult.roundOff).toFixed(2))}</span>
+                  <span className="font-mono font-medium tabular-nums">
+                    {effectiveRoundOff > 0 
+                      ? ('+ ₹' + effectiveRoundOff.toFixed(2)) 
+                      : effectiveRoundOff < 0 
+                      ? ('- ₹' + Math.abs(effectiveRoundOff).toFixed(2)) 
+                      : '₹0.00'}
+                  </span>
                 </div>
               )}
 
@@ -1707,16 +1740,16 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                     Grand Total
                   </span>
                   <span className="text-[10px] font-mono text-gold bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
-                    PAISE-ACCURATE
+                    {settleToReceived ? 'ROUNDED TO TENDER' : 'PAISE-ACCURATE'}
                   </span>
                 </div>
 
                 <div className="text-3xl sm:text-4xl font-extrabold font-serif tracking-tight text-white tabular-nums">
-                  ₹{calcResult.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹{effectiveGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
 
                 <p className="text-[11px] text-amber-100/80 italic font-normal leading-relaxed pt-1 border-t border-white/10">
-                  {numberToWordsIndian(calcResult.grandTotal)}
+                  {numberToWordsIndian(effectiveGrandTotal)}
                 </p>
               </div>
             </div>
@@ -1730,7 +1763,10 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 {/* Instant Quick-Fill Full Amount Button */}
                 <button
                   type="button"
-                  onClick={() => setPaymentAmount(calcResult.grandTotal)}
+                  onClick={() => {
+                    setPaymentAmount(calcResult.grandTotal);
+                    setSettleToReceived(false);
+                  }}
                   className="text-[10px] font-bold text-brand-900 bg-brand-50 hover:bg-brand-100 px-2 py-0.5 rounded-md border border-brand-200 transition cursor-pointer active-press"
                 >
                   Pay Full (₹{Math.round(calcResult.grandTotal)})
@@ -1745,10 +1781,47 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                     min="0"
                     step="0.01"
                     value={paymentAmount || ''}
-                    onChange={e => setPaymentAmount(Number(e.target.value) || 0)}
+                    onChange={e => handlePaymentAmountChange(Number(e.target.value) || 0)}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-extrabold text-base text-slate-900 focus:bg-white focus:ring-2 focus:ring-gold focus:outline-none tabular-nums"
                   />
                 </div>
+
+                {paymentAmount > 0 && Math.abs(tenderDiff) > 0.001 && (
+                  <div className="p-2.5 rounded-xl border bg-amber-50/70 border-amber-200/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-amber-950">
+                        {tenderDiff > 0 ? `Customer gave ₹${tenderDiff} less` : `Customer gave ₹${Math.abs(tenderDiff)} extra`}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Tender Difference</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSettleToReceived(true)}
+                        className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          settleToReceived 
+                            ? 'bg-amber-600 text-white shadow-xs' 
+                            : 'bg-white text-amber-900 border border-amber-300 hover:bg-amber-100/50'
+                        }`}
+                      >
+                        <span>Waive as Round-Off</span>
+                        <span className="font-mono text-[11px] opacity-90">(Bill: ₹{paymentAmount})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSettleToReceived(false)}
+                        className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          !settleToReceived 
+                            ? 'bg-slate-800 text-white shadow-xs' 
+                            : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>Keep as Balance Due</span>
+                        <span className="font-mono text-[11px] opacity-90">(Due: ₹{Math.max(0, tenderDiff)})</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -1796,9 +1869,9 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                 <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
                   <span className="text-slate-600 font-medium">Balance Due:</span>
                   <span className={`font-mono font-extrabold text-sm tabular-nums ${
-                    (calcResult.grandTotal - (paymentAmount || 0)) > 0 ? 'text-rose-700' : 'text-emerald-700'
+                    effectiveBalanceDue > 0 ? 'text-rose-700' : 'text-emerald-700'
                   }`}>
-                    ₹{Math.max(0, calcResult.grandTotal - (paymentAmount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹{effectiveBalanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>

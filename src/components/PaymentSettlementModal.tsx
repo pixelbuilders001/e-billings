@@ -33,8 +33,9 @@ export const PaymentSettlementModal: React.FC<PaymentSettlementModalProps> = ({
   onConfirmSettlement
 }) => {
   const originalTotal = invoice.grandTotal;
+  const initialReceived = invoice.paidTotal && invoice.paidTotal > 0 ? invoice.paidTotal : originalTotal;
 
-  const [receivedInput, setReceivedInput] = useState<string>(originalTotal.toString());
+  const [receivedInput, setReceivedInput] = useState<string>(initialReceived.toString());
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(
     (invoice.payments?.[0]?.method as PaymentMethod) || 'cash'
   );
@@ -45,6 +46,15 @@ export const PaymentSettlementModal: React.FC<PaymentSettlementModalProps> = ({
   const quickSuggestions = useMemo(() => {
     const list: { label: string; amount: number; diff: number }[] = [];
     const base = Math.floor(originalTotal);
+
+    // If customer already gave a specific tender amount
+    if (invoice.paidTotal && invoice.paidTotal > 0 && invoice.paidTotal !== originalTotal) {
+      list.push({
+        label: `₹${invoice.paidTotal} (Given)`,
+        amount: invoice.paidTotal,
+        diff: originalTotal - invoice.paidTotal
+      });
+    }
 
     // Exact
     list.push({ label: 'Exact', amount: originalTotal, diff: 0 });

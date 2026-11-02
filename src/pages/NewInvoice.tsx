@@ -130,6 +130,9 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
     ]
   );
 
+  // Direct editing state for Line Total to prevent cursor/decimal glitching
+  const [editingLineTotal, setEditingLineTotal] = useState<{ id: string; val: string } | null>(null);
+
   const [billDiscountType, setBillDiscountType] = useState<DiscountType>(
     initialDraft?.billDiscountType || 'percentage'
   );
@@ -327,6 +330,73 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
 
   const updateItemRow = (id: string, updates: Partial<WorkingItem>) => {
     setItems(items.map(it => it.id === id ? { ...it, ...updates } : it));
+  };
+
+  /**
+   * Calculates the item's own line total before whole-bill discounts
+   * (consistent with inclusive MRP or exclusive tax rate).
+   */
+  const getItemLineTotal = (item: WorkingItem): number => {
+    const qty = Math.max(0, item.qty || 0);
+    const unitPrice = Math.max(0, item.unitPrice || 0);
+    const gross = qty * unitPrice;
+    let itemDisc = 0;
+    const discVal = Math.max(0, item.discountValue || 0);
+    if (item.discountType === 'percentage') {
+      itemDisc = (gross * Math.min(100, discVal)) / 100;
+    } else {
+      itemDisc = Math.min(gross, discVal);
+    }
+    const netBase = Math.max(0, gross - itemDisc);
+    const isTaxExcl = pricingMode === 'exclusive' && settings.registrationStatus === 'registered';
+    const gstRate = isTaxExcl ? Math.max(0, item.gstRate || 0) : 0;
+    const lineTot = isTaxExcl ? netBase * (1 + gstRate / 100) : netBase;
+    return Number(lineTot.toFixed(2));
+  };
+
+  /**
+   * When staff directly edits Line Total:
+   * Keeps the Rate (unitPrice) intact whenever a rate exists,
+   * absorbing the difference into the item's discount (fixed amount)
+   * so that the original Rate/MRP is not modified.
+   */
+  const handleLineTotalChange = (id: string, newLineTotal: number) => {
+    const item = items.find(it => it.id === id);
+    if (!item) return;
+
+    const qty = Math.max(1, item.qty || 1);
+    const isTaxExcl = pricingMode === 'exclusive' && settings.registrationStatus === 'registered';
+    const gstRate = isTaxExcl ? Math.max(0, item.gstRate || 0) : 0;
+    const taxMultiplier = 1 + gstRate / 100;
+
+    const targetBase = Math.max(0, newLineTotal) / taxMultiplier;
+    const gross = (item.unitPrice || 0) * qty;
+
+    if (item.unitPrice > 0 && targetBase <= gross) {
+      // Keep Rate intact: calculate discount preserving the item's current discountType
+      const discountAmount = Math.max(0, gross - targetBase);
+      if (item.discountType === 'percentage') {
+        const discountPercent = gross > 0
+          ? Number(((discountAmount / gross) * 100).toFixed(2))
+          : 0;
+        updateItemRow(id, {
+          discountType: 'percentage',
+          discountValue: discountPercent
+        });
+      } else {
+        updateItemRow(id, {
+          discountType: 'fixed',
+          discountValue: Number(discountAmount.toFixed(2))
+        });
+      }
+    } else {
+      // If no rate was configured yet, or entered total exceeds current gross, set rate directly
+      const newUnitPrice = Number((targetBase / qty).toFixed(2));
+      updateItemRow(id, {
+        unitPrice: newUnitPrice,
+        discountValue: 0
+      });
+    }
   };
 
   // Add Product from Local Catalogue
@@ -1314,10 +1384,8 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
 
             {/* Mobile Native View for Line Items */}
             <div className="block md:hidden divide-y divide-slate-100">
-              {items.map((item, idx) => {
-                const computedLine = calcResult.items[idx];
-                return (
-                  <div key={item.id} className="p-4 space-y-3 bg-white">
+              {items.map((item, idx) => (
+                <div key={item.id} className="p-4 space-y-3 bg-white">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase">Item #{idx + 1}</span>
@@ -1385,17 +1453,41 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                         </div>
                       </div>
 
-                      <div className="text-right flex flex-col justify-end">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">Total</span>
-                        <span className="font-serif font-bold text-base text-brand-950 mt-0.5 tabular-nums">
-                          ₹{computedLine ? computedLine.lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
-                        </span>
+                      <div className="flex flex-col justify-end">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Line Total (₹)</label>
+                        <div className="relative flex items-center mt-0.5">
+                          <span className="absolute left-2.5 text-slate-400 font-serif font-bold text-xs pointer-events-none select-none">
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            title="Edit line total (adjusts discount, preserves rate)"
+                            value={
+                              editingLineTotal?.id === item.id
+                                ? editingLineTotal.val
+                                : (getItemLineTotal(item) || '')
+                            }
+                            onFocus={() => {
+                              const cur = getItemLineTotal(item);
+                              setEditingLineTotal({ id: item.id, val: cur ? String(cur) : '' });
+                            }}
+                            onBlur={() => setEditingLineTotal(null)}
+                            onChange={e => {
+                              const raw = e.target.value;
+                              setEditingLineTotal({ id: item.id, val: raw });
+                              handleLineTotalChange(item.id, Number(raw) || 0);
+                            }}
+                            className="w-full pl-6 pr-2.5 py-2 text-right font-serif font-bold text-brand-950 bg-amber-50/50 hover:bg-amber-50/80 focus:bg-white border border-amber-200/80 focus:border-gold rounded-xl text-xs focus:ring-2 focus:ring-gold focus:outline-none tabular-nums transition"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
 
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
@@ -1410,15 +1502,13 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                     {settings.registrationStatus === 'registered' && (
                       <th className="py-3 px-2 w-20 text-center font-bold uppercase tracking-wider text-[11px]">GST %</th>
                     )}
-                    <th className="py-3 px-4 w-32 text-right font-bold uppercase tracking-wider text-[11px]">Line Total (₹)</th>
+                    <th className="py-3 px-3 w-36 text-right font-bold uppercase tracking-wider text-[11px]">Line Total (₹)</th>
                     <th className="py-3 px-2 w-10 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {items.map((item, idx) => {
-                    const computedLine = calcResult.items[idx];
-                    return (
-                      <tr key={item.id} className="hover:bg-amber-50/20 transition">
+                  {items.map((item) => (
+                    <tr key={item.id} className="hover:bg-amber-50/20 transition">
                         <td className="py-2.5 px-4">
                           <input
                             type="text"
@@ -1495,8 +1585,35 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                           </td>
                         )}
 
-                        <td className="py-2.5 px-4 text-right font-serif font-bold text-brand-950 text-sm tabular-nums">
-                          ₹{computedLine ? computedLine.lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                        <td className="py-2.5 px-3 text-right">
+                          <div className="relative flex items-center">
+                            <span className="absolute left-2.5 text-slate-400 font-serif font-bold text-xs pointer-events-none select-none">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              title="Edit line total (adjusts discount, preserves rate)"
+                              value={
+                                editingLineTotal?.id === item.id
+                                  ? editingLineTotal.val
+                                  : (getItemLineTotal(item) || '')
+                              }
+                              onFocus={() => {
+                                const cur = getItemLineTotal(item);
+                                setEditingLineTotal({ id: item.id, val: cur ? String(cur) : '' });
+                              }}
+                              onBlur={() => setEditingLineTotal(null)}
+                              onChange={e => {
+                                const raw = e.target.value;
+                                setEditingLineTotal({ id: item.id, val: raw });
+                                handleLineTotalChange(item.id, Number(raw) || 0);
+                              }}
+                              className="w-full pl-6 pr-2.5 py-2 text-right font-serif font-bold text-brand-950 bg-amber-50/50 hover:bg-amber-50/80 focus:bg-white border border-amber-200/80 focus:border-gold rounded-xl text-xs focus:ring-2 focus:ring-gold focus:outline-none tabular-nums transition"
+                            />
+                          </div>
                         </td>
 
                         <td className="py-2.5 px-2 text-center">
@@ -1510,8 +1627,7 @@ export const NewInvoice: React.FC<NewInvoiceProps> = ({
                           </button>
                         </td>
                       </tr>
-                    );
-                  })}
+                    ))}
                 </tbody>
               </table>
             </div>
